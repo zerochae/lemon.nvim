@@ -380,6 +380,11 @@ end
 
 function M.open_float()
   open_styled_float(true)
+  vim.schedule(function()
+    if diag_win and vim.api.nvim_win_is_valid(diag_win) then
+      vim.api.nvim_set_current_win(diag_win)
+    end
+  end)
 end
 
 return M
