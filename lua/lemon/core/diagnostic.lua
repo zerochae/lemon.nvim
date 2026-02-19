@@ -61,10 +61,18 @@ local function apply_action(action, client)
 end
 
 local function execute_action(idx, source_bufnr)
+  vim.notify("Lemon Debug: execute_action called for idx " .. idx, vim.log.levels.INFO)
   local entry = action_cache[idx]
   if not entry then
+    vim.notify("Lemon Debug: No action found in cache for idx " .. idx .. ". Cache size: " .. #action_cache, vim.log.levels.WARN)
+    if #action_cache == 0 then
+      vim.notify("Lemon: No code actions available yet", vim.log.levels.INFO)
+    end
     return
   end
+
+  local current_win = vim.api.nvim_get_current_win()
+  vim.notify("Lemon Debug: Current window: " .. current_win .. ", diag_win: " .. tostring(diag_win), vim.log.levels.INFO)
 
   close_float()
 
@@ -92,6 +100,7 @@ end
 
 local function make_action_handler(idx, source_bufnr)
   return function()
+    vim.notify("Lemon Debug: Key " .. idx .. " pressed", vim.log.levels.INFO)
     execute_action(idx, source_bufnr)
   end
 end
@@ -135,10 +144,15 @@ local function request_code_actions(source_bufnr, cursor_pos, target_buf)
 
   local pending = #clients
   local all_actions = {}
+  vim.notify("Lemon Debug: Requesting code actions from " .. pending .. " clients", vim.log.levels.INFO)
 
   for _, client in ipairs(clients) do
     client:request("textDocument/codeAction", params, function(err, result)
+      if err then
+        vim.notify("Lemon Debug: LSP error from " .. client.name .. ": " .. tostring(err), vim.log.levels.ERROR)
+      end
       if not err and result then
+        vim.notify("Lemon Debug: Received " .. #result .. " actions from " .. client.name, vim.log.levels.INFO)
         for _, action in ipairs(result) do
           table.insert(all_actions, { action = action, client_id = client.id })
         end
@@ -146,6 +160,7 @@ local function request_code_actions(source_bufnr, cursor_pos, target_buf)
       pending = pending - 1
       if pending == 0 then
         vim.schedule(function()
+          vim.notify("Lemon Debug: All LSP responses received. Total actions: " .. #all_actions, vim.log.levels.INFO)
           if #all_actions == 0 or not target_buf or not vim.api.nvim_buf_is_valid(target_buf) then
             return
           end
@@ -281,10 +296,16 @@ local function open_styled_float(enter)
     border = cfg.hover.border,
     style = "minimal",
   })
+  vim.notify("Lemon Debug: diag_win opened: " .. diag_win .. ", diag_buf: " .. diag_buf, vim.log.levels.INFO)
 
   vim.api.nvim_set_option_value("winhighlight", "Normal:LemonNormal,FloatBorder:LemonBorder,SignColumn:LemonNormal", { win = diag_win })
   vim.api.nvim_set_option_value("signcolumn", "yes", { win = diag_win })
   vim.api.nvim_set_option_value("wrap", true, { win = diag_win })
+
+  if enter then
+    vim.api.nvim_set_current_win(diag_win)
+    vim.notify("Lemon Debug: Explicitly focused diag_win: " .. diag_win, vim.log.levels.INFO)
+  end
 
   local ns = vim.api.nvim_create_namespace("lemon_diagnostic")
   for i, ext in ipairs(extmarks) do
@@ -318,7 +339,9 @@ local function open_styled_float(enter)
 
   vim.api.nvim_buf_set_keymap(diag_buf, "n", "<CR>", "", {
     callback = function()
+      vim.notify("Lemon Debug: <CR> pressed", vim.log.levels.INFO)
       if #action_cache > 0 then
+        vim.notify("Lemon Debug: action_cache not empty, doing nothing on <CR>", vim.log.levels.INFO)
         return
       end
       request_code_actions(source_bufnr, cursor_pos, diag_buf)
@@ -327,6 +350,7 @@ local function open_styled_float(enter)
   })
 
   for i = 1, 9 do
+    vim.notify("Lemon Debug: Setting keymap for " .. i .. " on buffer " .. diag_buf, vim.log.levels.INFO)
     vim.keymap.set("n", tostring(i), make_action_handler(i, source_bufnr), {
       buffer = diag_buf,
       nowait = true,
@@ -360,6 +384,7 @@ local function open_styled_float(enter)
     pattern = tostring(diag_win),
     once = true,
     callback = function()
+      vim.notify("Lemon Debug: diag_win closed", vim.log.levels.INFO)
       close_float()
       pcall(vim.api.nvim_del_augroup_by_id, augroup)
     end,
@@ -380,11 +405,6 @@ end
 
 function M.open_float()
   open_styled_float(true)
-  vim.schedule(function()
-    if diag_win and vim.api.nvim_win_is_valid(diag_win) then
-      vim.api.nvim_set_current_win(diag_win)
-    end
-  end)
 end
 
 return M
