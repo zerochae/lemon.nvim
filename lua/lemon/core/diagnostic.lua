@@ -63,7 +63,6 @@ end
 local function execute_action(idx, source_bufnr)
   local entry = action_cache[idx]
   if not entry then
-    vim.notify("Lemon: No action found for index " .. idx, vim.log.levels.WARN)
     return
   end
 
@@ -179,14 +178,6 @@ local function request_code_actions(source_bufnr, cursor_pos, target_buf)
             })
           end
 
-          for i = 1, math.min(#all_actions, 9) do
-            vim.keymap.set("n", tostring(i), make_action_handler(i, source_bufnr), {
-              buffer = target_buf,
-              nowait = true,
-              silent = true,
-            })
-          end
-
           local new_total = vim.api.nvim_buf_line_count(target_buf)
           local new_height = math.min(new_total, math.floor(vim.api.nvim_get_option_value("lines", {}) * 0.4))
           if diag_win and vim.api.nvim_win_is_valid(diag_win) then
@@ -202,6 +193,7 @@ end
 
 local function open_styled_float(enter)
   close_float()
+  action_cache = {}
 
   local cfg = require("lemon.config").get()
   local cursor_pos = vim.api.nvim_win_get_cursor(0)
@@ -329,10 +321,18 @@ local function open_styled_float(enter)
       if #action_cache > 0 then
         return
       end
-      request_code_actions(source_bufnr, cursor_pos)
+      request_code_actions(source_bufnr, cursor_pos, diag_buf)
     end,
     nowait = true,
   })
+
+  for i = 1, 9 do
+    vim.keymap.set("n", tostring(i), make_action_handler(i, source_bufnr), {
+      buffer = diag_buf,
+      nowait = true,
+      silent = true,
+    })
+  end
 
   local augroup = vim.api.nvim_create_augroup("lemon_diag_close", { clear = true })
   for _, event in ipairs(cfg.hover.close_events) do

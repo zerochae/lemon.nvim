@@ -16,4 +16,16 @@ function M.definition()
   require("lemon.core.definition").goto_definition()
 end
 
+function M.diagnostic_next()
+  require("lemon.core.diagnostic").goto_next()
+end
+
+function M.diagnostic_prev()
+  require("lemon.core.diagnostic").goto_prev()
+end
+
+function M.diagnostic_float()
+  require("lemon.core.diagnostic").open_float()
+end
+
 return M
