@@ -63,6 +63,7 @@ end
 local function execute_action(idx, source_bufnr)
   local entry = action_cache[idx]
   if not entry then
+    vim.notify("Lemon: No action found for index " .. idx, vim.log.levels.WARN)
     return
   end
 
@@ -70,6 +71,7 @@ local function execute_action(idx, source_bufnr)
 
   local client = vim.lsp.get_client_by_id(entry.client_id)
   if not client then
+    vim.notify("Lemon: Client not found for action", vim.log.levels.ERROR)
     return
   end
 
@@ -77,7 +79,7 @@ local function execute_action(idx, source_bufnr)
   if action.data and not action.edit then
     client:request("codeAction/resolve", action, function(err, resolved)
       if err then
-        vim.notify("Code action resolve failed", vim.log.levels.ERROR)
+        vim.notify("Code action resolve failed: " .. (err.message or "unknown error"), vim.log.levels.ERROR)
         return
       end
       vim.schedule(function()
@@ -86,6 +88,12 @@ local function execute_action(idx, source_bufnr)
     end, source_bufnr)
   else
     apply_action(action, client)
+  end
+end
+
+local function make_action_handler(idx, source_bufnr)
+  return function()
+    execute_action(idx, source_bufnr)
   end
 end
 
@@ -172,10 +180,11 @@ local function request_code_actions(source_bufnr, cursor_pos)
           end
 
           for i = 1, math.min(#all_actions, 9) do
-            local idx = i
-            vim.keymap.set("n", tostring(i), function()
-              execute_action(idx, source_bufnr)
-            end, { buffer = diag_buf, nowait = true, silent = true })
+            vim.keymap.set("n", tostring(i), make_action_handler(i, source_bufnr), {
+              buffer = diag_buf,
+              nowait = true,
+              silent = true,
+            })
           end
 
           local new_total = vim.api.nvim_buf_line_count(diag_buf)
