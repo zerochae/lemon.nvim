@@ -172,12 +172,10 @@ local function request_code_actions(source_bufnr, cursor_pos)
           end
 
           for i = 1, math.min(#all_actions, 9) do
-            vim.api.nvim_buf_set_keymap(diag_buf, "n", tostring(i), "", {
-              callback = function()
-                execute_action(i, source_bufnr)
-              end,
-              nowait = true,
-            })
+            local idx = i
+            vim.keymap.set("n", tostring(i), function()
+              execute_action(idx, source_bufnr)
+            end, { buffer = diag_buf, nowait = true, silent = true })
           end
 
           local new_total = vim.api.nvim_buf_line_count(diag_buf)
