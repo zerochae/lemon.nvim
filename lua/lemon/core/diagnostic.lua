@@ -151,7 +151,7 @@ local function request_code_actions(source_bufnr, cursor_pos)
           local action_lines = { "" }
           for i, entry in ipairs(all_actions) do
             local title = entry.action.title or "Action"
-            table.insert(action_lines, i .. ". " .. title)
+            table.insert(action_lines, title)
           end
 
           vim.bo[diag_buf].modifiable = true
