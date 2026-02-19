@@ -97,8 +97,8 @@ local function make_action_handler(idx, source_bufnr)
   end
 end
 
-local function request_code_actions(source_bufnr, cursor_pos)
-  if not diag_buf or not vim.api.nvim_buf_is_valid(diag_buf) then
+local function request_code_actions(source_bufnr, cursor_pos, target_buf)
+  if not target_buf or not vim.api.nvim_buf_is_valid(target_buf) then
     return
   end
 
@@ -147,14 +147,14 @@ local function request_code_actions(source_bufnr, cursor_pos)
       pending = pending - 1
       if pending == 0 then
         vim.schedule(function()
-          if #all_actions == 0 or not diag_buf or not vim.api.nvim_buf_is_valid(diag_buf) then
+          if #all_actions == 0 or not target_buf or not vim.api.nvim_buf_is_valid(target_buf) then
             return
           end
 
           action_cache = all_actions
 
           local ns = vim.api.nvim_create_namespace("lemon_diagnostic")
-          local current_lines = vim.api.nvim_buf_get_lines(diag_buf, 0, -1, false)
+          local current_lines = vim.api.nvim_buf_get_lines(target_buf, 0, -1, false)
 
           local action_lines = { "" }
           for i, entry in ipairs(all_actions) do
@@ -162,18 +162,18 @@ local function request_code_actions(source_bufnr, cursor_pos)
             table.insert(action_lines, title)
           end
 
-          vim.bo[diag_buf].modifiable = true
-          vim.api.nvim_buf_set_lines(diag_buf, #current_lines, -1, false, action_lines)
-          vim.bo[diag_buf].modifiable = false
+          vim.bo[target_buf].modifiable = true
+          vim.api.nvim_buf_set_lines(target_buf, #current_lines, -1, false, action_lines)
+          vim.bo[target_buf].modifiable = false
 
           local base = #current_lines
           for i, _ in ipairs(all_actions) do
             local icon = numeric_icons[i] or numeric_icons[#numeric_icons]
-            vim.api.nvim_buf_set_extmark(diag_buf, ns, base + i, 0, {
+            vim.api.nvim_buf_set_extmark(target_buf, ns, base + i, 0, {
               sign_text = icon,
               sign_hl_group = "DiagnosticHint",
             })
-            vim.api.nvim_buf_set_extmark(diag_buf, ns, base + i, 0, {
+            vim.api.nvim_buf_set_extmark(target_buf, ns, base + i, 0, {
               end_col = #action_lines[i + 1],
               hl_group = "Function",
             })
@@ -181,13 +181,13 @@ local function request_code_actions(source_bufnr, cursor_pos)
 
           for i = 1, math.min(#all_actions, 9) do
             vim.keymap.set("n", tostring(i), make_action_handler(i, source_bufnr), {
-              buffer = diag_buf,
+              buffer = target_buf,
               nowait = true,
               silent = true,
             })
           end
 
-          local new_total = vim.api.nvim_buf_line_count(diag_buf)
+          local new_total = vim.api.nvim_buf_line_count(target_buf)
           local new_height = math.min(new_total, math.floor(vim.api.nvim_get_option_value("lines", {}) * 0.4))
           if diag_win and vim.api.nvim_win_is_valid(diag_win) then
             vim.api.nvim_win_set_config(diag_win, {
@@ -278,6 +278,7 @@ local function open_styled_float(enter)
   diag_buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_lines(diag_buf, 0, -1, false, lines)
   vim.bo[diag_buf].modifiable = false
+  vim.bo[diag_buf].buftype = "nofile"
 
   diag_win = vim.api.nvim_open_win(diag_buf, enter or false, {
     relative = "cursor",
@@ -364,7 +365,7 @@ local function open_styled_float(enter)
     end,
   })
 
-  request_code_actions(source_bufnr, cursor_pos)
+  request_code_actions(source_bufnr, cursor_pos, diag_buf)
 end
 
 function M.goto_next()
