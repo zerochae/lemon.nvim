@@ -7,8 +7,8 @@ local action_cache = {}
 local severity_sign = {
   [1] = { icon = "", hl = "DiagnosticError" },
   [2] = { icon = "", hl = "DiagnosticWarn" },
-  [3] = { icon = "", hl = "DiagnosticHint" },
-  [4] = { icon = "", hl = "DiagnosticInfo" },
+  [3] = { icon = "", hl = "DiagnosticInfo" },
+  [4] = { icon = "", hl = "DiagnosticHint" },
 }
 
 local numeric_icons = {
@@ -173,7 +173,7 @@ local function request_code_actions(source_bufnr, cursor_pos, target_buf)
             local icon = numeric_icons[i] or numeric_icons[#numeric_icons]
             vim.api.nvim_buf_set_extmark(target_buf, ns, base + i, 0, {
               sign_text = icon,
-              sign_hl_group = "DiagnosticHint",
+              sign_hl_group = "LemonActionNumber",
             })
             vim.api.nvim_buf_set_extmark(target_buf, ns, base + i, 0, {
               end_col = #action_lines[i + 1],
@@ -208,7 +208,20 @@ local function open_styled_float(enter)
     return
   end
 
+
   table.sort(diagnostics, function(a, b)
+    local code_a = tostring(a.code or "")
+    local code_b = tostring(b.code or "")
+    if code_a ~= code_b then
+      local sev_a = math.huge
+      local sev_b = math.huge
+      for _, d in ipairs(diagnostics) do
+        if tostring(d.code or "") == code_a and d.severity < sev_a then sev_a = d.severity end
+        if tostring(d.code or "") == code_b and d.severity < sev_b then sev_b = d.severity end
+      end
+      if sev_a ~= sev_b then return sev_a < sev_b end
+      return code_a < code_b
+    end
     if a.severity ~= b.severity then
       return a.severity < b.severity
     end
@@ -228,19 +241,38 @@ local function open_styled_float(enter)
     end
   end
 
-  for _, diag in ipairs(diagnostics) do
-    if diag.code then
-      table.insert(lines, tostring(diag.code))
-      table.insert(extmarks, { sign = { icon = "󰓹", hl = "@label" }, line_hl = "@comment" })
+  local last_code = nil
+  for idx, diag in ipairs(diagnostics) do
+    local code = diag.code and tostring(diag.code) or nil
+    local same_code = code and code == last_code
+    local is_child = same_code
+
+    if is_child then
+      local msg = "↳ " .. diag.message:gsub("\n", " "):gsub("%.$", "")
+      local s = severity_sign[diag.severity] or severity_sign[4]
+      table.insert(lines, msg)
+      table.insert(extmarks, { sign = { icon = s.icon, hl = s.hl }, line_hl = s.hl })
+    else
+      if idx > 1 then
+        table.insert(lines, "")
+        table.insert(extmarks, {})
+      end
+
+      if code then
+        table.insert(lines, code)
+        table.insert(extmarks, { sign = { icon = "󰓹", hl = "@label" }, line_hl = "@comment" })
+      end
+
+      table.insert(lines, "")
+      table.insert(extmarks, {})
+
+      local msg = diag.message:gsub("\n", " "):gsub("%.$", "")
+      local s = severity_sign[diag.severity] or severity_sign[4]
+      table.insert(lines, msg)
+      table.insert(extmarks, { sign = { icon = s.icon, hl = s.hl }, line_hl = s.hl })
     end
 
-    table.insert(lines, "")
-    table.insert(extmarks, {})
-
-    local msg = diag.message:gsub("\n", " "):gsub("%.$", "")
-    local s = severity_sign[diag.severity] or severity_sign[4]
-    table.insert(lines, msg)
-    table.insert(extmarks, { sign = { icon = s.icon, hl = s.hl }, line_hl = s.hl })
+    last_code = code
   end
 
   local columns = vim.api.nvim_get_option_value("columns", {})
