@@ -132,20 +132,8 @@ local function show_hover(contents, server_name, source_bufnr)
     end
   end
 
-  table.insert(lines, 1, "")
-  for i = #meta, 1, -1 do
-    table.insert(lines, 1, meta[i].text)
-  end
-
-  local win_opts = require("lemon.ui.window").compute(lines, cfg)
-
   hover_buf = vim.api.nvim_create_buf(false, true)
-
-  local content_lines = {}
-  for i = #meta + 2, #lines do
-    table.insert(content_lines, lines[i])
-  end
-  vim.lsp.util.stylize_markdown(hover_buf, content_lines, {})
+  vim.lsp.util.stylize_markdown(hover_buf, lines, {})
 
   local meta_insert = {}
   for i = 1, #meta do
@@ -154,6 +142,12 @@ local function show_hover(contents, server_name, source_bufnr)
   table.insert(meta_insert, "")
   vim.api.nvim_buf_set_lines(hover_buf, 0, 0, false, meta_insert)
   lines = vim.api.nvim_buf_get_lines(hover_buf, 0, -1, false)
+
+  local win_opts = require("lemon.ui.window").compute(lines, {
+    max_width = cfg.hover.max_width,
+    max_height = cfg.hover.max_height,
+    pad_right = cfg.hover.pad_right,
+  })
 
   hover_win = vim.api.nvim_open_win(hover_buf, false, {
     relative = "cursor",

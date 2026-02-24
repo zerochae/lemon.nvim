@@ -1,20 +1,37 @@
 local M = {}
 local glyph = require("lemon.glyph")
+local diff_ui = require("lemon.ui.diff")
+local extmarks_ui = require("lemon.ui.extmarks")
 
 local diag_win = nil
 local diag_buf = nil
 local action_cache = {}
+local resolve_cache = {}
+local diff_cache = {}
+local action_start_line = 0
+local current_preview_idx = 0
+local updating_preview = false
 
 local function close_float()
-  if diag_win and vim.api.nvim_win_is_valid(diag_win) then
-    vim.api.nvim_win_close(diag_win, true)
-  end
-  if diag_buf and vim.api.nvim_buf_is_valid(diag_buf) then
-    vim.api.nvim_buf_delete(diag_buf, { force = true })
-  end
+  local win, buf = diag_win, diag_buf
   diag_win = nil
   diag_buf = nil
   action_cache = {}
+  resolve_cache = {}
+  diff_cache = {}
+  action_start_line = 0
+  current_preview_idx = 0
+  updating_preview = false
+
+  if buf and vim.api.nvim_buf_is_valid(buf) then
+    vim.api.nvim_buf_clear_namespace(buf, vim.api.nvim_create_namespace "lemon_diff_syntax", 0, -1)
+  end
+  if win and vim.api.nvim_win_is_valid(win) then
+    vim.api.nvim_win_close(win, true)
+  end
+  if buf and vim.api.nvim_buf_is_valid(buf) then
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end
 end
 
 local function get_client_name(namespace_id, bufnr)
@@ -58,20 +75,254 @@ local function execute_action(idx, source_bufnr)
     return
   end
 
+  local resolved = resolve_cache[idx]
+  if resolved then
+    apply_action(resolved, client)
+    return
+  end
+
   local action = entry.action
   if action.data and not action.edit then
-    client:request("codeAction/resolve", action, function(err, resolved)
+    client:request("codeAction/resolve", action, function(err, r)
       if err then
         vim.notify("Code action resolve failed: " .. (err.message or "unknown error"), vim.log.levels.ERROR)
         return
       end
       vim.schedule(function()
-        apply_action(resolved or action, client)
+        apply_action(r or action, client)
       end)
     end, source_bufnr)
   else
     apply_action(action, client)
   end
+end
+
+local function get_action_idx_at_cursor()
+  if not diag_win or not vim.api.nvim_win_is_valid(diag_win) then
+    return nil
+  end
+  if #action_cache == 0 then
+    return nil
+  end
+  local row = vim.api.nvim_win_get_cursor(diag_win)[1]
+  local action_idx = row - action_start_line
+  if action_idx >= 1 and action_idx <= #action_cache then
+    return action_idx
+  end
+  return nil
+end
+
+local function update_action_preview(idx)
+  if not diag_buf or not vim.api.nvim_buf_is_valid(diag_buf) then
+    return
+  end
+  if not diag_win or not vim.api.nvim_win_is_valid(diag_win) then
+    return
+  end
+  if idx == current_preview_idx then
+    return
+  end
+  if updating_preview then
+    return
+  end
+
+  current_preview_idx = idx
+  local entry = action_cache[idx]
+  if not entry then
+    return
+  end
+
+  local ns = vim.api.nvim_create_namespace "lemon_diagnostic"
+  local preview_start = action_start_line + #action_cache
+  local preview_ft = nil
+  local preview_code_info = nil
+
+  local function render_preview(diff_lines, diff_extmarks)
+    if current_preview_idx ~= idx then
+      return
+    end
+    if not diag_buf or not vim.api.nvim_buf_is_valid(diag_buf) then
+      return
+    end
+
+    local cfg = require("lemon.config").get()
+    local columns = vim.api.nvim_get_option_value("columns", {})
+    local max_width = math.floor(columns * cfg.hover.max_width)
+    local sign_width = 2
+    local cur_width = vim.api.nvim_win_get_width(diag_win)
+    local max_content_len = cur_width - sign_width
+    for _, l in ipairs(diff_lines) do
+      local w = vim.fn.strdisplaywidth(l)
+      if w > max_content_len then
+        max_content_len = w
+      end
+    end
+    local new_width = math.min(max_content_len + sign_width + cfg.hover.pad_right, max_width)
+    new_width = math.max(new_width, cur_width)
+
+    vim.bo[diag_buf].modifiable = true
+
+    local total = vim.api.nvim_buf_line_count(diag_buf)
+    if total > preview_start then
+      vim.api.nvim_buf_set_lines(diag_buf, preview_start, total, false, {})
+    end
+
+    local separator = string.rep("─", new_width - 2)
+    local preview_block = { separator }
+    for _, l in ipairs(diff_lines) do
+      table.insert(preview_block, l)
+    end
+
+    vim.api.nvim_buf_set_lines(diag_buf, preview_start, preview_start, false, preview_block)
+    vim.bo[diag_buf].modifiable = false
+
+    vim.api.nvim_buf_clear_namespace(diag_buf, ns, preview_start, -1)
+    vim.api.nvim_buf_set_extmark(diag_buf, ns, preview_start, 0, {
+      end_col = #separator,
+      hl_group = "FloatBorder",
+    })
+    extmarks_ui.apply(diag_buf, "lemon_diagnostic", diff_extmarks, diff_lines, preview_start + 1)
+    diff_ui.apply_syntax(diag_buf, preview_code_info, preview_ft, preview_start + 1)
+
+    local new_total = vim.api.nvim_buf_line_count(diag_buf)
+    local editor_lines = vim.api.nvim_get_option_value("lines", {})
+    local max_height = math.floor(editor_lines * cfg.hover.max_height)
+    local new_height = math.min(new_total, max_height)
+    new_height = math.max(new_height, action_start_line + #action_cache + 1)
+    vim.api.nvim_win_set_config(diag_win, { height = new_height, width = new_width })
+
+    updating_preview = false
+  end
+
+  if diff_cache[idx] then
+    preview_ft = diff_cache[idx].ft
+    preview_code_info = diff_cache[idx].code_info
+    render_preview(diff_cache[idx].lines, diff_cache[idx].extmarks)
+    return
+  end
+
+  if resolve_cache[idx] then
+    local resolved = resolve_cache[idx]
+    if not resolved.edit then
+      local lines = { "No preview available — Enter to execute" }
+      local ext =
+        { { sign = { icon = glyph.ui.info, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
+      diff_cache[idx] = { lines = lines, extmarks = ext }
+      render_preview(lines, ext)
+      return
+    end
+    local diffs =
+      diff_ui.compute(resolved.edit, vim.lsp.get_client_by_id(entry.client_id).offset_encoding or "utf-16", 3)
+    if #diffs == 0 then
+      local lines = { "No changes detected" }
+      local ext =
+        { { sign = { icon = glyph.ui.info, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
+      diff_cache[idx] = { lines = lines, extmarks = ext }
+      render_preview(lines, ext)
+    else
+      local lines, ext, ft, code_info = diff_ui.build_lines(diffs)
+      preview_ft = ft
+      preview_code_info = code_info
+      diff_cache[idx] = { lines = lines, extmarks = ext, ft = ft, code_info = code_info }
+      render_preview(lines, ext)
+    end
+    return
+  end
+
+  local action = entry.action
+
+  if action.edit then
+    resolve_cache[idx] = action
+    local client = vim.lsp.get_client_by_id(entry.client_id)
+    local encoding = client and client.offset_encoding or "utf-16"
+    local diffs = diff_ui.compute(action.edit, encoding, 3)
+    if #diffs == 0 then
+      local lines = { "No changes detected" }
+      local ext =
+        { { sign = { icon = glyph.ui.info, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
+      diff_cache[idx] = { lines = lines, extmarks = ext }
+      render_preview(lines, ext)
+    else
+      local lines, ext, ft, code_info = diff_ui.build_lines(diffs)
+      preview_ft = ft
+      preview_code_info = code_info
+      diff_cache[idx] = { lines = lines, extmarks = ext, ft = ft, code_info = code_info }
+      render_preview(lines, ext)
+    end
+    return
+  end
+
+  updating_preview = true
+  local loading_lines = { "Resolving..." }
+  local loading_ext =
+    { { sign = { icon = glyph.ui.loading, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
+  render_preview(loading_lines, loading_ext)
+  updating_preview = true
+
+  local client = vim.lsp.get_client_by_id(entry.client_id)
+  if not client then
+    updating_preview = false
+    return
+  end
+
+  client:request("codeAction/resolve", action, function(err, resolved)
+    vim.schedule(function()
+      if err or not resolved then
+        resolve_cache[idx] = action
+        local lines = { "Resolve failed" }
+        local ext = {
+          {
+            sign = { icon = glyph.ui.error, hl = "DiagnosticError" },
+            line_hl = "DiagnosticError",
+            text_hl = "DiagnosticError",
+          },
+        }
+        diff_cache[idx] = { lines = lines, extmarks = ext }
+        updating_preview = false
+        if current_preview_idx == idx then
+          render_preview(lines, ext)
+        end
+        return
+      end
+
+      resolve_cache[idx] = resolved
+      local encoding = client.offset_encoding or "utf-16"
+
+      if not resolved.edit then
+        local lines = { "No preview available — Enter to execute" }
+        local ext =
+          { { sign = { icon = glyph.ui.info, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
+        diff_cache[idx] = { lines = lines, extmarks = ext }
+        updating_preview = false
+        if current_preview_idx == idx then
+          render_preview(lines, ext)
+        end
+        return
+      end
+
+      local diffs = diff_ui.compute(resolved.edit, encoding, 3)
+      if #diffs == 0 then
+        local lines = { "No changes detected" }
+        local ext =
+          { { sign = { icon = glyph.ui.info, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
+        diff_cache[idx] = { lines = lines, extmarks = ext }
+        updating_preview = false
+        if current_preview_idx == idx then
+          render_preview(lines, ext)
+        end
+        return
+      end
+
+      local lines, ext, ft, code_info = diff_ui.build_lines(diffs)
+      preview_ft = ft
+      preview_code_info = code_info
+      diff_cache[idx] = { lines = lines, extmarks = ext, ft = ft, code_info = code_info }
+      updating_preview = false
+      if current_preview_idx == idx then
+        render_preview(lines, ext)
+      end
+    end)
+  end, diag_buf)
 end
 
 local function make_action_handler(idx, source_bufnr)
@@ -136,38 +387,31 @@ local function request_code_actions(source_bufnr, cursor_pos, target_buf)
 
           action_cache = all_actions
 
-          local ns = vim.api.nvim_create_namespace("lemon_diagnostic")
           local current_lines = vim.api.nvim_buf_get_lines(target_buf, 0, -1, false)
+          action_start_line = #current_lines + 1
 
           local action_lines = { "" }
+          local action_extmarks = { {} }
           for i, entry in ipairs(all_actions) do
             local title = entry.action.title or "Action"
             table.insert(action_lines, title)
+            local icon = glyph.numeric[i] or glyph.numeric[#glyph.numeric]
+            table.insert(
+              action_extmarks,
+              { sign = { icon = icon, hl = "LemonActionNumber" }, line_hl = "Normal", text_hl = "Normal" }
+            )
           end
 
           vim.bo[target_buf].modifiable = true
           vim.api.nvim_buf_set_lines(target_buf, #current_lines, -1, false, action_lines)
           vim.bo[target_buf].modifiable = false
 
-          local base = #current_lines
-          for i, _ in ipairs(all_actions) do
-            local icon = glyph.numeric[i] or glyph.numeric[#glyph.numeric]
-            vim.api.nvim_buf_set_extmark(target_buf, ns, base + i, 0, {
-              sign_text = icon,
-              sign_hl_group = "LemonActionNumber",
-            })
-            vim.api.nvim_buf_set_extmark(target_buf, ns, base + i, 0, {
-              end_col = #action_lines[i + 1],
-              hl_group = "Function",
-            })
-          end
+          extmarks_ui.apply(target_buf, "lemon_diagnostic", action_extmarks, action_lines, #current_lines)
 
           local new_total = vim.api.nvim_buf_line_count(target_buf)
           local new_height = math.min(new_total, math.floor(vim.api.nvim_get_option_value("lines", {}) * 0.4))
           if diag_win and vim.api.nvim_win_is_valid(diag_win) then
-            vim.api.nvim_win_set_config(diag_win, {
-              height = new_height,
-            })
+            vim.api.nvim_win_set_config(diag_win, { height = new_height })
           end
         end)
       end
@@ -178,6 +422,8 @@ end
 local function open_styled_float(enter)
   close_float()
   action_cache = {}
+  resolve_cache = {}
+  diff_cache = {}
 
   local cfg = require("lemon.config").get()
   local cursor_pos = vim.api.nvim_win_get_cursor(0)
@@ -188,7 +434,6 @@ local function open_styled_float(enter)
   if #diagnostics == 0 then
     return
   end
-
 
   table.sort(diagnostics, function(a, b)
     local code_a = tostring(a.code or "")
@@ -210,7 +455,7 @@ local function open_styled_float(enter)
   end)
 
   local lines = {}
-  local extmarks = {}
+  local ext_list = {}
 
   local providers = {}
   for _, diag in ipairs(diagnostics) do
@@ -218,7 +463,7 @@ local function open_styled_float(enter)
     if not providers[name] then
       providers[name] = true
       table.insert(lines, name)
-      table.insert(extmarks, { sign = { icon = glyph.ui.server, hl = "LemonTitle" }, line_hl = "LemonTitle" })
+      table.insert(ext_list, { sign = { icon = glyph.ui.server, hl = "LemonTitle" }, line_hl = "LemonTitle" })
     end
   end
 
@@ -232,56 +477,35 @@ local function open_styled_float(enter)
       local msg = "↳ " .. diag.message:gsub("\n", " "):gsub("%.$", "")
       local s = glyph.severity[diag.severity] or glyph.severity[4]
       table.insert(lines, msg)
-      table.insert(extmarks, { sign = { icon = s.icon, hl = s.hl }, line_hl = s.hl })
+      table.insert(ext_list, { sign = { icon = s.icon, hl = s.hl }, line_hl = s.hl })
     else
       if idx > 1 then
         table.insert(lines, "")
-        table.insert(extmarks, {})
+        table.insert(ext_list, {})
       end
 
       if code then
         table.insert(lines, code)
-        table.insert(extmarks, { sign = { icon = glyph.ui.code, hl = "@label" }, line_hl = "@comment" })
+        table.insert(ext_list, { sign = { icon = glyph.ui.code, hl = "@label" }, line_hl = "@comment" })
       end
 
       table.insert(lines, "")
-      table.insert(extmarks, {})
+      table.insert(ext_list, {})
 
       local msg = diag.message:gsub("\n", " "):gsub("%.$", "")
       local s = glyph.severity[diag.severity] or glyph.severity[4]
       table.insert(lines, msg)
-      table.insert(extmarks, { sign = { icon = s.icon, hl = s.hl }, line_hl = s.hl })
+      table.insert(ext_list, { sign = { icon = s.icon, hl = s.hl }, line_hl = s.hl })
     end
 
     last_code = code
   end
 
-  local columns = vim.api.nvim_get_option_value("columns", {})
-  local max_width = math.floor(columns * cfg.hover.max_width)
-  local max_content_len = 0
-  for _, line in ipairs(lines) do
-    local w = vim.fn.strdisplaywidth(line)
-    if w > max_content_len then
-      max_content_len = w
-    end
-  end
-
-  local sign_width = 2
-  local width = math.min(max_content_len + sign_width, max_width) + cfg.hover.pad_right
-  width = math.max(width, 10)
-
-  local wrap_increase = 0
-  for _, line in ipairs(lines) do
-    local w = vim.fn.strdisplaywidth(line)
-    if w > width then
-      wrap_increase = wrap_increase + math.ceil(w / width) - 1
-    end
-  end
-
-  local editor_lines = vim.api.nvim_get_option_value("lines", {})
-  local max_height = math.floor(editor_lines * cfg.hover.max_height)
-  local height = math.min(#lines + wrap_increase, max_height)
-  height = math.max(height, 1)
+  local win_opts = require("lemon.ui.window").compute(lines, {
+    max_width = cfg.hover.max_width,
+    max_height = cfg.hover.max_height,
+    pad_right = cfg.hover.pad_right,
+  })
 
   diag_buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_lines(diag_buf, 0, -1, false, lines)
@@ -292,8 +516,8 @@ local function open_styled_float(enter)
     relative = "cursor",
     row = 1,
     col = 0,
-    width = width,
-    height = height,
+    width = win_opts.width,
+    height = win_opts.height,
     border = cfg.hover.border,
     style = "minimal",
   })
@@ -306,27 +530,10 @@ local function open_styled_float(enter)
     vim.api.nvim_set_current_win(diag_win)
   end
 
-  local ns = vim.api.nvim_create_namespace("lemon_diagnostic")
-  for i, ext in ipairs(extmarks) do
-    if ext.sign then
-      vim.api.nvim_buf_set_extmark(diag_buf, ns, i - 1, 0, {
-        sign_text = ext.sign.icon,
-        sign_hl_group = ext.sign.hl,
-      })
-    end
-    if ext.line_hl then
-      local line_text = lines[i] or ""
-      if #line_text > 0 then
-        vim.api.nvim_buf_set_extmark(diag_buf, ns, i - 1, 0, {
-          end_col = #line_text,
-          hl_group = ext.line_hl,
-        })
-      end
-    end
-  end
+  extmarks_ui.apply(diag_buf, "lemon_diagnostic", ext_list, lines, 0)
 
   local total_lines_count = vim.api.nvim_buf_line_count(diag_buf)
-  local scrollable = total_lines_count + wrap_increase > height
+  local scrollable = total_lines_count > win_opts.height
   if scrollable and cfg.hover.scroll_indicator then
     require("lemon.ui.scrollbar").update(diag_win, total_lines_count)
   end
@@ -338,6 +545,11 @@ local function open_styled_float(enter)
 
   vim.api.nvim_buf_set_keymap(diag_buf, "n", "<CR>", "", {
     callback = function()
+      local action_idx = get_action_idx_at_cursor()
+      if action_idx then
+        execute_action(action_idx, source_bufnr)
+        return
+      end
       if #action_cache > 0 then
         return
       end
@@ -363,6 +575,27 @@ local function open_styled_float(enter)
       callback = close_float,
     })
   end
+
+  vim.api.nvim_create_autocmd("CursorMoved", {
+    group = augroup,
+    buffer = diag_buf,
+    callback = function()
+      local action_idx = get_action_idx_at_cursor()
+      if action_idx then
+        update_action_preview(action_idx)
+      elseif current_preview_idx ~= 0 then
+        current_preview_idx = 0
+        local preview_start = action_start_line + #action_cache
+        vim.bo[diag_buf].modifiable = true
+        local total = vim.api.nvim_buf_line_count(diag_buf)
+        if total > preview_start then
+          vim.api.nvim_buf_set_lines(diag_buf, preview_start, total, false, {})
+        end
+        vim.bo[diag_buf].modifiable = false
+        vim.api.nvim_buf_clear_namespace(diag_buf, vim.api.nvim_create_namespace "lemon_diff_syntax", 0, -1)
+      end
+    end,
+  })
 
   if scrollable and cfg.hover.scroll_indicator then
     vim.api.nvim_create_autocmd("WinScrolled", {

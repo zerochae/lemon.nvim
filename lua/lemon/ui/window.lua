@@ -1,12 +1,18 @@
 local M = {}
 
----@param lines string[]
----@param cfg Lemon.Config
----@return { width: number, height: number }
-function M.compute(lines, cfg)
+function M.compute(lines, opts)
+  opts = opts or {}
+  local max_width_ratio = opts.max_width or 0.6
+  local max_height_ratio = opts.max_height or 0.4
+  local pad_right = opts.pad_right or 0
+  local min_width = opts.min_width or 10
+  local min_height = opts.min_height or 1
+  local extra_height = opts.extra_height or 0
+
   local columns = vim.api.nvim_get_option_value("columns", {})
   local editor_lines = vim.api.nvim_get_option_value("lines", {})
-  local max_width = math.floor(columns * cfg.hover.max_width)
+  local max_width = math.floor(columns * max_width_ratio)
+  local sign_width = 2
 
   local max_content_len = 0
   for _, line in ipairs(lines) do
@@ -16,9 +22,8 @@ function M.compute(lines, cfg)
     end
   end
 
-  local sign_width = 2
-  local width = math.min(max_content_len + sign_width, max_width) + cfg.hover.pad_right
-  width = math.max(width, 10)
+  local width = math.min(max_content_len + sign_width, max_width) + pad_right
+  width = math.max(width, min_width)
 
   local wrap_increase = 0
   for _, line in ipairs(lines) do
@@ -28,9 +33,9 @@ function M.compute(lines, cfg)
     end
   end
 
-  local max_height = math.floor(editor_lines * cfg.hover.max_height)
-  local height = math.min(#lines + wrap_increase, max_height)
-  height = math.max(height, 1)
+  local max_height = math.floor(editor_lines * max_height_ratio)
+  local height = math.min(#lines + extra_height + wrap_increase, max_height)
+  height = math.max(height, min_height)
 
   return { width = width, height = height }
 end
