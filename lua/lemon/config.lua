@@ -4,16 +4,18 @@ local M = {}
 M.defaults = {
   hover = {
     border = "single",
-    max_width = 0.6,
     max_height = 0.4,
     pad_right = 4,
     scroll_indicator = true,
     close_events = { "CursorMoved", "InsertEnter", "BufLeave" },
     close_key = "q",
+    confirm_key = "<CR>",
     show_server = true,
     show_filetype = true,
     show_symbol = true,
     hide_diagnostic = false,
+    conceal = true,
+    footer = { enabled = true, show_desc = true },
   },
   definition = {
     beacon = { enabled = true, fade_interval = 60, fade_step = 8 },
@@ -21,7 +23,6 @@ M.defaults = {
   },
   diagnostic = {
     border = "single",
-    max_width = 0.6,
     max_height = 0.4,
     pad_right = 4,
     scroll_indicator = true,
@@ -35,7 +36,6 @@ M.defaults = {
   },
   code_action = {
     border = "single",
-    max_width = 0.6,
     max_height = 0.4,
     pad_right = 4,
     scroll_indicator = true,

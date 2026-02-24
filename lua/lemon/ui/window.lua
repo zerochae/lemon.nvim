@@ -2,7 +2,7 @@ local M = {}
 
 function M.compute(lines, opts)
   opts = opts or {}
-  local max_width_ratio = opts.max_width or 0.6
+  local max_width_ratio = opts.max_width
   local max_height_ratio = opts.max_height or 0.4
   local pad_right = opts.pad_right or 0
   local min_width = opts.min_width or 10
@@ -11,7 +11,6 @@ function M.compute(lines, opts)
 
   local columns = vim.api.nvim_get_option_value("columns", {})
   local editor_lines = vim.api.nvim_get_option_value("lines", {})
-  local max_width = math.floor(columns * max_width_ratio)
   local sign_width = 2
 
   local max_content_len = 0
@@ -22,7 +21,11 @@ function M.compute(lines, opts)
     end
   end
 
-  local width = math.min(max_content_len + sign_width, max_width) + pad_right
+  local width = max_content_len + sign_width + pad_right
+  if max_width_ratio then
+    local max_width = math.floor(columns * max_width_ratio)
+    width = math.min(width, max_width)
+  end
   width = math.max(width, min_width)
 
   local wrap_increase = 0

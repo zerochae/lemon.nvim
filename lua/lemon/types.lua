@@ -15,7 +15,7 @@
 
 ---@class Lemon.BasePanelConfig
 ---@field border string
----@field max_width number
+---@field max_width? number
 ---@field max_height number
 ---@field pad_right number
 ---@field scroll_indicator boolean
@@ -27,6 +27,9 @@
 
 ---@class Lemon.HoverConfig : Lemon.BasePanelConfig
 ---@field show_symbol boolean
+---@field conceal boolean
+---@field confirm_key string
+---@field footer Lemon.FooterConfig
 
 ---@class Lemon.DiagnosticConfig : Lemon.BasePanelConfig
 ---@field confirm_key string
@@ -93,6 +96,7 @@
 ---@field confirm_key? string
 ---@field back_key? string
 ---@field hide_diagnostic? boolean
+---@field footer? Lemon.FooterConfig
 
 ---@class Lemon.PreviewManager
 ---@field panel Lemon.FloatPanel

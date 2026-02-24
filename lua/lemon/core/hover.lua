@@ -1,6 +1,7 @@
 local M = {}
 
 local glyph = require "lemon.glyph"
+local footer = require "lemon.ui.footer"
 local FloatPanel = require "lemon.ui.float"
 
 local HoverPanel = setmetatable({}, { __index = FloatPanel })
@@ -66,9 +67,7 @@ local function process_contents(contents)
 end
 
 function HoverPanel:get_config()
-  return vim.tbl_extend("force", FloatPanel.get_config(self), {
-    conceal = true,
-  })
+  return FloatPanel.get_config(self)
 end
 
 function HoverPanel:build_content(contents, server_name)
@@ -146,24 +145,51 @@ function HoverPanel:apply_extmarks(_, lines)
   end
 end
 
+function HoverPanel:close()
+  local src = self.source_bufnr
+  FloatPanel.close(self)
+  if src and vim.api.nvim_buf_is_valid(src) then
+    local cfg = self:get_config()
+    pcall(vim.keymap.del, "n", cfg.confirm_key or "<CR>", { buffer = src })
+  end
+end
+
+local function focus_panel()
+  if not panel:is_open() then
+    return
+  end
+  if panel.augroup and panel.source_bufnr then
+    pcall(vim.api.nvim_clear_autocmds, { group = panel.augroup, buffer = panel.source_bufnr })
+    pcall(vim.api.nvim_clear_autocmds, { group = panel.augroup, event = "WinScrolled" })
+  end
+  if panel.source_bufnr and vim.api.nvim_buf_is_valid(panel.source_bufnr) then
+    local cfg = panel:get_config()
+    pcall(vim.keymap.del, "n", cfg.confirm_key or "<CR>", { buffer = panel.source_bufnr })
+  end
+  vim.api.nvim_set_current_win(panel.win)
+  local cfg = panel:get_config()
+  footer.set(panel.win, {
+    { icon = glyph.footer.move, desc = "move", key = "jk" },
+    { icon = glyph.footer.close, desc = "close", key = cfg.close_key },
+  }, cfg.footer)
+end
+
 function HoverPanel:after_open()
   vim.treesitter.start(self.buf, "markdown")
+  local cfg = self:get_config()
+  footer.set(self.win, {
+    { icon = glyph.footer.enter, desc = "focus", key = cfg.confirm_key or "<CR>" },
+  }, cfg.footer)
+  vim.keymap.set("n", cfg.confirm_key or "<CR>", focus_panel, {
+    buffer = self.source_bufnr,
+    nowait = true,
+    silent = true,
+  })
 end
 
 function M.hover()
   if panel:is_open() then
-    if panel.augroup then
-      pcall(vim.api.nvim_clear_autocmds, { group = panel.augroup })
-      vim.api.nvim_create_autocmd("WinClosed", {
-        group = panel.augroup,
-        pattern = tostring(panel.win),
-        once = true,
-        callback = function()
-          panel:close()
-        end,
-      })
-    end
-    vim.api.nvim_set_current_win(panel.win)
+    focus_panel()
     return
   end
 
