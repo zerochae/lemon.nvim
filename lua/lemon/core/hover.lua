@@ -207,6 +207,17 @@ end
 
 function M.hover()
   if panel:is_open() then
+    if panel.augroup then
+      pcall(vim.api.nvim_clear_autocmds, { group = panel.augroup })
+      vim.api.nvim_create_autocmd("WinClosed", {
+        group = panel.augroup,
+        pattern = tostring(panel.win),
+        once = true,
+        callback = function()
+          panel:close()
+        end,
+      })
+    end
     vim.api.nvim_set_current_win(panel.win)
     return
   end
