@@ -10,10 +10,28 @@ M.defaults = {
     scroll_indicator = true,
     close_events = { "CursorMoved", "InsertEnter", "BufLeave" },
     close_key = "q",
+    show_server = true,
+    show_filetype = true,
+    show_symbol = true,
+    hide_diagnostic = false,
   },
   definition = {
     beacon = { enabled = true, fade_interval = 60, fade_step = 8 },
     tagstack = true,
+  },
+  diagnostic = {
+    border = "single",
+    max_width = 0.6,
+    max_height = 0.4,
+    pad_right = 4,
+    scroll_indicator = true,
+    close_events = { "CursorMoved", "InsertEnter", "BufLeave" },
+    close_key = "q",
+    confirm_key = "<CR>",
+    show_server = true,
+    show_filetype = true,
+    hide_diagnostic = false,
+    footer = { enabled = true, show_desc = true },
   },
   code_action = {
     border = "single",
@@ -26,11 +44,11 @@ M.defaults = {
     confirm_key = "<CR>",
     back_key = "<BS>",
     diff_context = 3,
-  },
-  meta = {
     show_server = true,
     show_filetype = true,
-    show_symbol = true,
+    show_code = true,
+    hide_diagnostic = false,
+    footer = { enabled = true, show_desc = true },
   },
   symbol_icons = {
     ["function"] = "󰊕",
@@ -55,6 +73,7 @@ M.defaults = {
   },
   parsers = {},
   highlights = {},
+  glyph = {},
 }
 
 ---@type Lemon.Config|nil

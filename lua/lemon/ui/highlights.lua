@@ -13,6 +13,9 @@ function M.setup()
     LemonDiffDeleteSign = { link = "Removed" },
     LemonDiffHunk = { link = "Comment" },
     LemonDiffFile = { link = "Normal" },
+    LemonFooterIcon = { link = "Function" },
+    LemonFooterDesc = { link = "Comment" },
+    LemonFooterKey = { link = "Function" },
   }
 
   for name, opts in pairs(highlights) do

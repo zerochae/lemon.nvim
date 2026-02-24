@@ -2,6 +2,7 @@ local M = {}
 
 local glyph = require("lemon.glyph")
 local extmarks_ui = require("lemon.ui.extmarks")
+local footer = require("lemon.ui.footer")
 local FloatPanel = require("lemon.ui.float")
 local PreviewManager = require("lemon.ui.preview")
 
@@ -26,26 +27,22 @@ local function get_client_name(namespace_id, bufnr)
 end
 
 function DiagnosticPanel:get_config()
-  local cfg = require("lemon.config").get()
-  return {
-    border = cfg.hover.border,
-    max_width = cfg.hover.max_width,
-    max_height = cfg.hover.max_height,
-    pad_right = cfg.hover.pad_right,
-    close_key = cfg.hover.close_key,
-    close_events = cfg.hover.close_events,
-    scroll_indicator = cfg.hover.scroll_indicator,
-    enter = true,
+  return vim.tbl_extend("force", FloatPanel.get_config(self), {
+    enter = false,
     diff_context = 3,
-  }
+  })
 end
 
 function DiagnosticPanel:close()
+  local src = self.source_bufnr
   FloatPanel.close(self)
   preview:reset()
   self._actions = nil
   self._cursor_pos = nil
   self._action_start_line = 0
+  if src and vim.api.nvim_buf_is_valid(src) then
+    pcall(vim.keymap.del, "n", "<CR>", { buffer = src })
+  end
 end
 
 function DiagnosticPanel:build_content(cursor_pos)
@@ -80,14 +77,12 @@ function DiagnosticPanel:build_content(cursor_pos)
   local lines = {}
   local ext_list = {}
 
-  local providers = {}
-  for _, diag in ipairs(diagnostics) do
-    local name = get_client_name(diag.namespace, self.source_bufnr) or diag.source or "LSP"
-    if not providers[name] then
-      providers[name] = true
-      table.insert(lines, name)
-      table.insert(ext_list, { sign = { icon = glyph.ui.server, hl = "LemonTitle" }, line_hl = "LemonTitle" })
-    end
+  local server_name = get_client_name(diagnostics[1].namespace, self.source_bufnr) or diagnostics[1].source or "LSP"
+
+  local meta_lines, meta_ext = self:build_meta(server_name)
+  for i, _ in ipairs(meta_lines) do
+    table.insert(lines, meta_lines[i])
+    table.insert(ext_list, meta_ext[i])
   end
 
   local last_code = nil
@@ -108,7 +103,7 @@ function DiagnosticPanel:build_content(cursor_pos)
 
       if code then
         table.insert(lines, code)
-        table.insert(ext_list, { sign = { icon = glyph.ui.code, hl = "@label" }, line_hl = "@comment" })
+        table.insert(ext_list, { sign = { icon = glyph.ui.code, hl = "@comment" }, line_hl = "@comment" })
       end
 
       table.insert(lines, "")
@@ -292,6 +287,9 @@ end
 function DiagnosticPanel:setup_keymaps()
   FloatPanel.setup_keymaps(self)
 
+  vim.keymap.set("n", "h", "<Nop>", { buffer = self.buf, nowait = true, silent = true })
+  vim.keymap.set("n", "l", "<Nop>", { buffer = self.buf, nowait = true, silent = true })
+
   vim.api.nvim_buf_set_keymap(self.buf, "n", "<CR>", "", {
     callback = function()
       local action_idx = get_action_idx_at_cursor()
@@ -321,6 +319,16 @@ function DiagnosticPanel:setup_autocmds()
     group = self.augroup,
     buffer = self.buf,
     callback = function()
+      if #preview.action_cache > 0 then
+        local row = vim.api.nvim_win_get_cursor(panel.win)[1]
+        local first = panel._action_start_line + 1
+        local last = panel._action_start_line + #preview.action_cache
+        if row < first then
+          vim.api.nvim_win_set_cursor(panel.win, { first, 0 })
+        elseif row > last then
+          vim.api.nvim_win_set_cursor(panel.win, { last, 0 })
+        end
+      end
       local action_idx = get_action_idx_at_cursor()
       if action_idx then
         preview:update(action_idx)
@@ -331,7 +339,40 @@ function DiagnosticPanel:setup_autocmds()
   })
 end
 
+local function focus_panel()
+  if not panel:is_open() then
+    return
+  end
+  if panel.augroup and panel.source_bufnr then
+    pcall(vim.api.nvim_clear_autocmds, { group = panel.augroup, buffer = panel.source_bufnr })
+    pcall(vim.api.nvim_clear_autocmds, { group = panel.augroup, event = "WinScrolled" })
+  end
+  if panel.source_bufnr and vim.api.nvim_buf_is_valid(panel.source_bufnr) then
+    pcall(vim.keymap.del, "n", "<CR>", { buffer = panel.source_bufnr })
+  end
+  vim.api.nvim_set_current_win(panel.win)
+  if #preview.action_cache > 0 then
+    vim.api.nvim_win_set_cursor(panel.win, { panel._action_start_line + 1, 0 })
+    preview:update(1)
+  end
+  local cfg = panel:get_config()
+  footer.set(panel.win, {
+    { icon = glyph.footer.move, desc = "move", key = "jk" },
+    { icon = glyph.footer.execute, desc = "execute", key = cfg.confirm_key or "<CR>" },
+    { icon = glyph.footer.close, desc = "close", key = cfg.close_key },
+  }, cfg.footer)
+end
+
 function DiagnosticPanel:after_open()
+  local cfg = self:get_config()
+  footer.set(self.win, {
+    { icon = glyph.footer.enter, desc = "focus", key = cfg.confirm_key or "<CR>" },
+  }, cfg.footer)
+  vim.keymap.set("n", "<CR>", focus_panel, {
+    buffer = self.source_bufnr,
+    nowait = true,
+    silent = true,
+  })
   request_code_actions()
 end
 
@@ -362,7 +403,14 @@ function M.goto_prev()
 end
 
 function M.open_float()
+  if panel:is_open() then
+    focus_panel()
+    return
+  end
   open_styled_float()
+  if panel:is_open() then
+    focus_panel()
+  end
 end
 
 return M

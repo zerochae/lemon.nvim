@@ -25,11 +25,15 @@ function PreviewManager:reset()
   self.current_idx = 0
   self.updating = false
   self.list_end_line = 0
+  self.base_width = 0
 end
 
 function PreviewManager:attach(actions, list_end_line)
   self.action_cache = actions
   self.list_end_line = list_end_line
+  if self.panel:is_open() then
+    self.base_width = vim.api.nvim_win_get_width(self.panel.win)
+  end
 end
 
 function PreviewManager:get_resolved(idx)
@@ -76,8 +80,8 @@ function PreviewManager:update(idx)
     local columns = vim.api.nvim_get_option_value("columns", {})
     local max_width = math.floor(columns * cfg.max_width)
     local sign_width = 2
-    local cur_width = vim.api.nvim_win_get_width(panel.win)
-    local max_content_len = cur_width - sign_width
+    local base = preview_mgr.base_width or vim.api.nvim_win_get_width(panel.win)
+    local max_content_len = base - sign_width
     for _, l in ipairs(diff_lines) do
       local w = vim.fn.strdisplaywidth(l)
       if w > max_content_len then
@@ -85,7 +89,7 @@ function PreviewManager:update(idx)
       end
     end
     local new_width = math.min(max_content_len + sign_width + (cfg.pad_right or 0), max_width)
-    new_width = math.max(new_width, cur_width)
+    new_width = math.max(new_width, base)
 
     vim.bo[panel.buf].modifiable = true
 
@@ -258,6 +262,12 @@ function PreviewManager:clear_preview()
   end
   vim.bo[panel.buf].modifiable = false
   vim.api.nvim_buf_clear_namespace(panel.buf, vim.api.nvim_create_namespace("lemon_diff_syntax"), 0, -1)
+
+  if panel:is_open() then
+    local new_height = vim.api.nvim_buf_line_count(panel.buf)
+    local base = self.base_width or vim.api.nvim_win_get_width(panel.win)
+    panel:resize(base, new_height)
+  end
 end
 
 return PreviewManager

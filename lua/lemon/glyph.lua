@@ -1,4 +1,6 @@
-return {
+local M = {}
+
+local defaults = {
   numeric = {
     [1] = "󰎤",
     [2] = "󰎧",
@@ -57,6 +59,14 @@ return {
     internal = "󰒃",
   },
 
+  footer = {
+    enter = "󰌑",
+    move = "↕",
+    close = "󰅗",
+    execute = "󰌑",
+    select = "",
+  },
+
   ui = {
     server = "󰚗",
     file = "󰈙",
@@ -66,5 +76,29 @@ return {
     info = "󰍻",
     error = "",
     symbol_fallback = "󰈚",
+    scroll = "↕",
+    scroll_up = "▲",
+    scroll_down = "▼",
   },
 }
+
+local icons = nil
+
+function M.setup(opts)
+  icons = vim.tbl_deep_extend("force", {}, defaults, opts or {})
+end
+
+local function get()
+  if not icons then
+    icons = vim.tbl_deep_extend("force", {}, defaults)
+  end
+  return icons
+end
+
+M.get = get
+
+return setmetatable(M, {
+  __index = function(_, k)
+    return get()[k]
+  end,
+})

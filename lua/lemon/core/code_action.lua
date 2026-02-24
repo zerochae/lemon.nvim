@@ -1,6 +1,7 @@
 local M = {}
 
 local glyph = require("lemon.glyph")
+local footer = require("lemon.ui.footer")
 local FloatPanel = require("lemon.ui.float")
 local PreviewManager = require("lemon.ui.preview")
 
@@ -11,23 +12,12 @@ local panel = CodeActionPanel:new("code_action")
 local preview = PreviewManager:new(panel)
 
 function CodeActionPanel:get_config()
-  local cfg = require("lemon.config").get().code_action
-  return {
-    border = cfg.border,
-    max_width = cfg.max_width,
-    max_height = cfg.max_height,
-    pad_right = cfg.pad_right,
-    scroll_indicator = cfg.scroll_indicator,
-    close_key = cfg.close_key,
-    close_events = cfg.close_events,
-    confirm_key = cfg.confirm_key,
-    back_key = cfg.back_key,
-    diff_context = cfg.diff_context,
+  return vim.tbl_extend("force", FloatPanel.get_config(self), {
     cursorline = true,
     enter = true,
     min_width = 30,
     extra_height = 2,
-  }
+  })
 end
 
 function CodeActionPanel:close()
@@ -36,11 +26,27 @@ function CodeActionPanel:close()
   self._actions = nil
 end
 
-function CodeActionPanel:build_content(actions)
+function CodeActionPanel:build_content(actions, diag_code)
   self._actions = actions
 
   local lines = {}
   local ext_list = {}
+
+  local client = vim.lsp.get_client_by_id(actions[1].client_id)
+  local server_name = client and client.name or "LSP"
+
+  local meta_lines, meta_ext = self:build_meta(server_name, diag_code)
+  for i, _ in ipairs(meta_lines) do
+    table.insert(lines, meta_lines[i])
+    table.insert(ext_list, meta_ext[i])
+  end
+
+  if #lines > 0 then
+    table.insert(lines, "")
+    table.insert(ext_list, {})
+  end
+
+  self._meta_count = #lines
 
   for i, entry in ipairs(actions) do
     local title = entry.action.title or "Action"
@@ -49,13 +55,10 @@ function CodeActionPanel:build_content(actions)
     table.insert(ext_list, { sign = { icon = icon, hl = "LemonActionNumber" }, line_hl = "Normal", text_hl = "Normal" })
   end
 
-  local cfg = self:get_config()
   self.buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, lines)
   vim.bo[self.buf].modifiable = false
   vim.bo[self.buf].buftype = "nofile"
-
-  cfg.min_height = #lines + 1
 
   return lines, ext_list
 end
@@ -89,9 +92,11 @@ local function get_cursor_action_idx()
   if not panel:is_open() then
     return nil
   end
+  local offset = panel._meta_count or 0
   local row = vim.api.nvim_win_get_cursor(panel.win)[1]
-  if row >= 1 and row <= #panel._actions then
-    return row
+  local idx = row - offset
+  if idx >= 1 and idx <= #panel._actions then
+    return idx
   end
   return nil
 end
@@ -100,12 +105,13 @@ local function clamp_cursor()
   if not panel:is_open() then
     return
   end
+  local offset = panel._meta_count or 0
   local count = #panel._actions
   local row = vim.api.nvim_win_get_cursor(panel.win)[1]
-  if row > count then
-    vim.api.nvim_win_set_cursor(panel.win, { count, 0 })
-  elseif row < 1 then
-    vim.api.nvim_win_set_cursor(panel.win, { 1, 0 })
+  if row - offset > count then
+    vim.api.nvim_win_set_cursor(panel.win, { offset + count, 0 })
+  elseif row - offset < 1 then
+    vim.api.nvim_win_set_cursor(panel.win, { offset + 1, 0 })
   end
 end
 
@@ -124,6 +130,9 @@ function CodeActionPanel:setup_keymaps()
       apply_action_at(idx)
     end
   end, { buffer = self.buf, nowait = true, silent = true })
+
+  vim.keymap.set("n", "h", "<Nop>", { buffer = self.buf, nowait = true, silent = true })
+  vim.keymap.set("n", "l", "<Nop>", { buffer = self.buf, nowait = true, silent = true })
 
   for i = 1, math.min(9, #self._actions) do
     vim.keymap.set("n", tostring(i), function()
@@ -151,9 +160,17 @@ function CodeActionPanel:setup_autocmds()
 end
 
 function CodeActionPanel:after_open()
-  preview:attach(self._actions, #self._actions)
-  vim.api.nvim_win_set_cursor(self.win, { 1, 0 })
+  local offset = self._meta_count or 0
+  preview:attach(self._actions, offset + #self._actions)
+  vim.api.nvim_win_set_cursor(self.win, { offset + 1, 0 })
   preview:update(1)
+
+  local cfg = self:get_config()
+  footer.set(self.win, {
+    { icon = glyph.footer.move, desc = "move", key = "jk" },
+    { icon = glyph.footer.execute, desc = "execute", key = cfg.confirm_key },
+    { icon = glyph.footer.close, desc = "close", key = cfg.close_key },
+  }, cfg.footer)
 end
 
 function M.code_action()
@@ -171,6 +188,14 @@ function M.code_action()
   local lnum = cursor_pos[1] - 1
   local col = cursor_pos[2]
   local diagnostics = vim.diagnostic.get(source_bufnr, { lnum = lnum })
+
+  local diag_code = nil
+  for _, d in ipairs(diagnostics) do
+    if d.code then
+      diag_code = tostring(d.code)
+      break
+    end
+  end
 
   local params = {
     textDocument = vim.lsp.util.make_text_document_params(source_bufnr),
@@ -213,7 +238,7 @@ function M.code_action()
             vim.notify("Lemon: No code actions available", vim.log.levels.INFO)
             return
           end
-          panel:show(source_bufnr, all_actions)
+          panel:show(source_bufnr, all_actions, diag_code)
         end)
       end
     end, source_bufnr)

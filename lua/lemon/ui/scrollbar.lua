@@ -1,3 +1,4 @@
+local glyph = require "lemon.glyph"
 local M = {}
 
 ---@param win number
@@ -8,10 +9,10 @@ function M.update(win, total_lines)
   end
 
   local top = vim.api.nvim_win_call(win, function()
-    return vim.fn.line("w0")
+    return vim.fn.line "w0"
   end)
   local bot = vim.api.nvim_win_call(win, function()
-    return vim.fn.line("w$")
+    return vim.fn.line "w$"
   end)
 
   local has_above = top > 1
@@ -19,11 +20,11 @@ function M.update(win, total_lines)
   local indicator = ""
 
   if has_above and has_below then
-    indicator = "↕"
+    indicator = glyph.ui.scroll
   elseif has_above then
-    indicator = "▲"
+    indicator = glyph.ui.scroll_up
   elseif has_below then
-    indicator = "▼"
+    indicator = glyph.ui.scroll_down
   end
 
   if indicator ~= "" then

@@ -5,6 +5,7 @@ local config = require("lemon.config")
 ---@param opts? Lemon.Config
 function M.setup(opts)
   config.setup(opts)
+  require("lemon.glyph").setup(config.get().glyph)
   require("lemon.ui.highlights").setup()
 end
 

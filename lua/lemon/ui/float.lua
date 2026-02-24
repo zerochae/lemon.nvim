@@ -1,4 +1,5 @@
 local extmarks = require("lemon.ui.extmarks")
+local meta_ui = require("lemon.ui.meta")
 local scrollbar = require("lemon.ui.scrollbar")
 local window = require("lemon.ui.window")
 
@@ -24,10 +25,15 @@ end
 function FloatPanel:close()
   local win, buf = self.win, self.buf
   local augroup = self.augroup
+  local source = self.source_bufnr
   self.win = nil
   self.buf = nil
   self.source_bufnr = nil
   self.augroup = nil
+
+  if source and vim.api.nvim_buf_is_valid(source) then
+    pcall(vim.diagnostic.enable, true, { bufnr = source })
+  end
 
   if buf and vim.api.nvim_buf_is_valid(buf) then
     vim.api.nvim_buf_clear_namespace(buf, vim.api.nvim_create_namespace("lemon_diff_syntax"), 0, -1)
@@ -55,6 +61,11 @@ function FloatPanel:show(source_bufnr, ...)
   self:open_win(lines)
   if not self:is_open() then
     return
+  end
+
+  local cfg = self:get_config()
+  if cfg.hide_diagnostic then
+    vim.diagnostic.enable(false, { bufnr = source_bufnr })
   end
 
   self:apply_extmarks(ext_list, lines)
@@ -185,7 +196,13 @@ function FloatPanel:append_lines(lines)
 end
 
 function FloatPanel:get_config()
-  return {}
+  return require("lemon.config").get()[self.name] or {}
+end
+
+function FloatPanel:build_meta(server_name, code)
+  local cfg = self:get_config()
+  local meta = meta_ui.build(self.source_bufnr, server_name, code, cfg)
+  return meta_ui.to_lines(meta)
 end
 
 function FloatPanel:build_content(_)
