@@ -584,7 +584,6 @@ local function render_ui(actions)
   vim.api.nvim_set_option_value("cursorline", true, { win = action_win })
   vim.api.nvim_set_current_win(action_win)
 
-  local ns = vim.api.nvim_create_namespace "lemon_code_action"
   apply_extmarks(action_buf, extmarks, lines, 0)
 
   vim.keymap.set("n", cfg.close_key, close_float, { buffer = action_buf, nowait = true, silent = true })

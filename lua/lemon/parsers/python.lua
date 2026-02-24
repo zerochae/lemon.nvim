@@ -1,15 +1,17 @@
+local g = require("lemon.glyph").tag
+
 ---@type table<string, Lemon.TagDef>
 return {
-  [":param"] = { icon = "󰏪", hl = "LemonTitle" },
-  [":type"] = { icon = "󰠱", hl = "@type" },
-  [":returns?:"] = { icon = "󰌑", hl = "@keyword.return" },
-  [":rtype:"] = { icon = "󰠱", hl = "@type" },
-  [":raises?:"] = { icon = "󰚑", hl = "DiagnosticWarn" },
-  ["Args:"] = { icon = "󰏪", hl = "LemonTitle" },
-  ["Returns:"] = { icon = "󰌑", hl = "@keyword.return" },
-  ["Raises:"] = { icon = "󰚑", hl = "DiagnosticWarn" },
-  ["Yields:"] = { icon = "󰌑", hl = "@keyword.return" },
-  ["Note:"] = { icon = "󰍩", hl = "DiagnosticInfo" },
-  ["Examples?:"] = { icon = "", hl = "@function" },
-  ["Attributes:"] = { icon = "󰜢", hl = "@variable.member" },
+  [":param"] = { icon = g.param, hl = "LemonTitle" },
+  [":type"] = { icon = g.type, hl = "@type" },
+  [":returns?:"] = { icon = g.returns, hl = "@keyword.return" },
+  [":rtype:"] = { icon = g.type, hl = "@type" },
+  [":raises?:"] = { icon = g.throws, hl = "DiagnosticWarn" },
+  ["Args:"] = { icon = g.param, hl = "LemonTitle" },
+  ["Returns:"] = { icon = g.returns, hl = "@keyword.return" },
+  ["Raises:"] = { icon = g.throws, hl = "DiagnosticWarn" },
+  ["Yields:"] = { icon = g.returns, hl = "@keyword.return" },
+  ["Note:"] = { icon = g.note, hl = "DiagnosticInfo" },
+  ["Examples?:"] = { icon = g.example, hl = "@function" },
+  ["Attributes:"] = { icon = g.field, hl = "@variable.member" },
 }
