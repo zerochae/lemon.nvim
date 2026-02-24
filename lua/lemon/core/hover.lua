@@ -1,9 +1,12 @@
 local M = {}
 
 local glyph = require("lemon.glyph")
+local FloatPanel = require("lemon.ui.float")
 
-local hover_win = nil
-local hover_buf = nil
+local HoverPanel = setmetatable({}, { __index = FloatPanel })
+HoverPanel.__index = HoverPanel
+
+local panel = HoverPanel:new("hover")
 
 local function process_contents(contents)
   local lines = {}
@@ -52,36 +55,39 @@ local function process_contents(contents)
     table.insert(result, line)
   end
 
-  while #result > 0 and result[1]:match "^%s*$" do
+  while #result > 0 and result[1]:match("^%s*$") do
     table.remove(result, 1)
   end
-  while #result > 0 and result[#result]:match "^%s*$" do
+  while #result > 0 and result[#result]:match("^%s*$") do
     table.remove(result)
   end
 
   return result
 end
 
-local function close_hover()
-  if hover_win and vim.api.nvim_win_is_valid(hover_win) then
-    vim.api.nvim_win_close(hover_win, true)
-  end
-  if hover_buf and vim.api.nvim_buf_is_valid(hover_buf) then
-    vim.api.nvim_buf_delete(hover_buf, { force = true })
-  end
-  hover_win = nil
-  hover_buf = nil
+function HoverPanel:get_config()
+  local cfg = require("lemon.config").get()
+  return {
+    border = cfg.hover.border,
+    max_width = cfg.hover.max_width,
+    max_height = cfg.hover.max_height,
+    pad_right = cfg.hover.pad_right,
+    close_key = cfg.hover.close_key,
+    close_events = cfg.hover.close_events,
+    scroll_indicator = cfg.hover.scroll_indicator,
+    conceal = true,
+  }
 end
 
-local function show_hover(contents, server_name, source_bufnr)
+function HoverPanel:build_content(contents, server_name)
   local cfg = require("lemon.config").get()
   local lines = process_contents(contents)
   if #lines == 0 then
-    return
+    return {}, {}
   end
 
   for i = #lines, 1, -1 do
-    if lines[i]:match "^%-%-%-+$" then
+    if lines[i]:match("^%-%-%-+$") then
       table.remove(lines, i)
     end
   end
@@ -90,7 +96,7 @@ local function show_hover(contents, server_name, source_bufnr)
 
   local function get_symbol_info()
     local row, col = unpack(vim.api.nvim_win_get_cursor(0))
-    local captures = vim.treesitter.get_captures_at_pos(source_bufnr, row - 1, col)
+    local captures = vim.treesitter.get_captures_at_pos(self.source_bufnr, row - 1, col)
     for i = #captures, 1, -1 do
       local name = captures[i].capture
       if symbol_icons[name] then
@@ -107,12 +113,12 @@ local function show_hover(contents, server_name, source_bufnr)
   end
 
   if cfg.meta.show_filetype then
-    local ft = vim.api.nvim_get_option_value("filetype", { buf = source_bufnr })
+    local ft = vim.api.nvim_get_option_value("filetype", { buf = self.source_bufnr })
     if ft ~= "" then
       local ft_icon, ft_hl = glyph.ui.file, nil
       local ok_devicon, devicons = pcall(require, "nvim-web-devicons")
       if ok_devicon then
-        local fname = vim.api.nvim_buf_get_name(source_bufnr)
+        local fname = vim.api.nvim_buf_get_name(self.source_bufnr)
         local ext = vim.fn.fnamemodify(fname, ":e")
         local icon, hl = devicons.get_icon(fname, ext, { default = true })
         if icon then
@@ -125,57 +131,42 @@ local function show_hover(contents, server_name, source_bufnr)
   end
 
   if cfg.meta.show_symbol then
-    local symbol = vim.fn.expand "<cword>"
+    local symbol = vim.fn.expand("<cword>")
     if symbol ~= "" then
       local sym_icon, sym_capture = get_symbol_info()
       table.insert(meta, { icon = sym_icon, text = symbol, hl = sym_capture or "LemonTitle", text_hl = sym_capture })
     end
   end
 
-  hover_buf = vim.api.nvim_create_buf(false, true)
-  vim.lsp.util.stylize_markdown(hover_buf, lines, {})
+  self.buf = vim.api.nvim_create_buf(false, true)
+  vim.lsp.util.stylize_markdown(self.buf, lines, {})
 
   local meta_insert = {}
   for i = 1, #meta do
     table.insert(meta_insert, meta[i].text)
   end
   table.insert(meta_insert, "")
-  vim.api.nvim_buf_set_lines(hover_buf, 0, 0, false, meta_insert)
-  lines = vim.api.nvim_buf_get_lines(hover_buf, 0, -1, false)
+  vim.api.nvim_buf_set_lines(self.buf, 0, 0, false, meta_insert)
+  lines = vim.api.nvim_buf_get_lines(self.buf, 0, -1, false)
 
-  local win_opts = require("lemon.ui.window").compute(lines, {
-    max_width = cfg.hover.max_width,
-    max_height = cfg.hover.max_height,
-    pad_right = cfg.hover.pad_right,
-  })
+  self._meta = meta
+  self._meta_count = #meta
 
-  hover_win = vim.api.nvim_open_win(hover_buf, false, {
-    relative = "cursor",
-    row = 1,
-    col = 0,
-    width = win_opts.width,
-    height = win_opts.height,
-    border = cfg.hover.border,
-    style = "minimal",
-  })
+  return lines, {}
+end
 
-  vim.api.nvim_set_option_value("winhighlight", "Normal:LemonNormal,FloatBorder:LemonBorder,SignColumn:LemonNormal", { win = hover_win })
-  vim.api.nvim_set_option_value("signcolumn", "yes", { win = hover_win })
-  vim.api.nvim_set_option_value("wrap", true, { win = hover_win })
-  vim.api.nvim_set_option_value("conceallevel", 2, { win = hover_win })
-  vim.api.nvim_set_option_value("concealcursor", "niv", { win = hover_win })
+function HoverPanel:apply_extmarks(_, lines)
+  local ns = vim.api.nvim_create_namespace("lemon_hover")
+  local meta = self._meta
 
-  vim.treesitter.start(hover_buf, "markdown")
-
-  local ns = vim.api.nvim_create_namespace "lemon_hover"
   for i, m in ipairs(meta) do
-    vim.api.nvim_buf_set_extmark(hover_buf, ns, i - 1, 0, {
+    vim.api.nvim_buf_set_extmark(self.buf, ns, i - 1, 0, {
       sign_text = m.icon,
       sign_hl_group = m.hl,
     })
     if m.text_hl then
       local line_len = #lines[i]
-      vim.api.nvim_buf_set_extmark(hover_buf, ns, i - 1, 0, {
+      vim.api.nvim_buf_set_extmark(self.buf, ns, i - 1, 0, {
         end_col = line_len,
         hl_group = m.text_hl,
       })
@@ -183,8 +174,8 @@ local function show_hover(contents, server_name, source_bufnr)
   end
 
   local tag_icons = require("lemon.parsers").get_all_tags()
-  local content_start = #meta
-  local total_lines = vim.api.nvim_buf_line_count(hover_buf)
+  local content_start = self._meta_count
+  local total_lines = vim.api.nvim_buf_line_count(self.buf)
   local first_content = true
   for i = content_start, total_lines - 1 do
     local l = lines[i + 1] or ""
@@ -192,7 +183,7 @@ local function show_hover(contents, server_name, source_bufnr)
     local stripped = l:gsub("%*", ""):gsub("%s+", " "):gsub("^%s+", "")
     for pattern, tag_cfg in pairs(tag_icons) do
       if stripped:match("^" .. pattern .. "%s") or stripped:match("^" .. pattern .. "$") then
-        vim.api.nvim_buf_set_extmark(hover_buf, ns, i, 0, {
+        vim.api.nvim_buf_set_extmark(self.buf, ns, i, 0, {
           sign_text = tag_cfg.icon,
           sign_hl_group = tag_cfg.hl,
         })
@@ -200,68 +191,28 @@ local function show_hover(contents, server_name, source_bufnr)
         break
       end
     end
-    if not matched and first_content and l ~= "" and not l:match "^```" then
-      vim.api.nvim_buf_set_extmark(hover_buf, ns, i, 0, {
+    if not matched and first_content and l ~= "" and not l:match("^```") then
+      vim.api.nvim_buf_set_extmark(self.buf, ns, i, 0, {
         sign_text = glyph.ui.content,
         sign_hl_group = "LemonTitle",
       })
       first_content = false
     end
   end
+end
 
-  local scrollbar = require("lemon.ui.scrollbar")
-  local scrollable = total_lines > win_opts.height
-
-  if scrollable and cfg.hover.scroll_indicator then
-    scrollbar.update(hover_win, total_lines)
-  end
-
-  vim.api.nvim_buf_set_keymap(hover_buf, "n", cfg.hover.close_key, "", {
-    callback = close_hover,
-    nowait = true,
-  })
-
-  local augroup = vim.api.nvim_create_augroup("lemon_hover_close", { clear = true })
-
-  for _, event in ipairs(cfg.hover.close_events) do
-    vim.api.nvim_create_autocmd(event, {
-      group = augroup,
-      buffer = source_bufnr,
-      once = true,
-      callback = close_hover,
-    })
-  end
-
-  if scrollable and cfg.hover.scroll_indicator then
-    vim.api.nvim_create_autocmd("WinScrolled", {
-      group = augroup,
-      callback = function()
-        if hover_win and vim.api.nvim_win_is_valid(hover_win) then
-          scrollbar.update(hover_win, total_lines)
-        end
-      end,
-    })
-  end
-
-  vim.api.nvim_create_autocmd("WinClosed", {
-    group = augroup,
-    pattern = tostring(hover_win),
-    once = true,
-    callback = function()
-      close_hover()
-      pcall(vim.api.nvim_del_augroup_by_id, augroup)
-    end,
-  })
+function HoverPanel:after_open()
+  vim.treesitter.start(self.buf, "markdown")
 end
 
 function M.hover()
-  if hover_win and vim.api.nvim_win_is_valid(hover_win) then
-    vim.api.nvim_set_current_win(hover_win)
+  if panel:is_open() then
+    vim.api.nvim_set_current_win(panel.win)
     return
   end
 
   local source_bufnr = vim.api.nvim_get_current_buf()
-  local clients = vim.lsp.get_clients { bufnr = source_bufnr, method = "textDocument/hover" }
+  local clients = vim.lsp.get_clients({ bufnr = source_bufnr, method = "textDocument/hover" })
   if #clients == 0 then
     return
   end
@@ -282,7 +233,7 @@ function M.hover()
     end
 
     vim.schedule(function()
-      show_hover(result.contents, client.name or "LSP", source_bufnr)
+      panel:show(source_bufnr, result.contents, client.name or "LSP")
     end)
   end)
 end
