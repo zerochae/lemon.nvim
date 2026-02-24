@@ -5,6 +5,7 @@
 ---@field diagnostic Lemon.DiagnosticConfig
 ---@field definition Lemon.DefinitionConfig
 ---@field code_action Lemon.CodeActionConfig
+---@field signature_help Lemon.SignatureHelpConfig
 ---@field symbol_icons table<string, string>
 ---@field parsers table<string, Lemon.TagDef>
 ---@field highlights table<string, table>
@@ -41,6 +42,11 @@
 ---@field back_key string
 ---@field diff_context number
 ---@field show_code boolean
+
+---@class Lemon.SignatureHelpConfig : Lemon.BasePanelConfig
+---@field conceal boolean
+---@field auto boolean
+---@field footer Lemon.FooterConfig
 
 ---@class Lemon.DefinitionConfig
 ---@field beacon Lemon.BeaconConfig

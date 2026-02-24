@@ -16,6 +16,7 @@ function M.setup()
     LemonFooterIcon = { link = "Function" },
     LemonFooterDesc = { link = "Comment" },
     LemonFooterKey = { link = "Function" },
+    LemonSignatureActiveParam = { link = "LspSignatureActiveParameter" },
   }
 
   for name, opts in pairs(highlights) do

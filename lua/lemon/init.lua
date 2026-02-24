@@ -7,6 +7,7 @@ function M.setup(opts)
   config.setup(opts)
   require("lemon.glyph").setup(config.get().glyph)
   require("lemon.ui.highlights").setup()
+  require("lemon.core.signature_help").setup_auto()
 end
 
 function M.hover()
@@ -31,6 +32,10 @@ end
 
 function M.code_action()
   require("lemon.core.code_action").code_action()
+end
+
+function M.signature_help()
+  require("lemon.core.signature_help").signature_help()
 end
 
 return M

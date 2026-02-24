@@ -4,7 +4,7 @@ end
 vim.g.loaded_lemon = true
 
 vim.api.nvim_create_user_command("Lemon", function(opts)
-  local lemon = require("lemon")
+  local lemon = require "lemon"
   local args = opts.fargs
 
   if #args == 0 then
@@ -20,13 +20,15 @@ vim.api.nvim_create_user_command("Lemon", function(opts)
     lemon.definition()
   elseif subcmd == "code_action" then
     lemon.code_action()
+  elseif subcmd == "signature_help" then
+    lemon.signature_help()
   else
     vim.notify("[lemon] Unknown subcommand: " .. subcmd, vim.log.levels.ERROR)
   end
 end, {
   nargs = "*",
   complete = function(arg_lead)
-    local subcommands = { "hover", "definition", "code_action" }
+    local subcommands = { "hover", "definition", "code_action", "signature_help" }
     return vim.tbl_filter(function(s)
       return s:match("^" .. arg_lead)
     end, subcommands)
