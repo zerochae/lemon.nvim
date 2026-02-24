@@ -1,7 +1,7 @@
-local extmarks = require("lemon.ui.extmarks")
-local meta_ui = require("lemon.ui.meta")
-local scrollbar = require("lemon.ui.scrollbar")
-local window = require("lemon.ui.window")
+local extmarks = require "lemon.ui.extmarks"
+local meta_ui = require "lemon.ui.meta"
+local scrollbar = require "lemon.ui.scrollbar"
+local window = require "lemon.ui.window"
 
 ---@class Lemon.FloatPanel
 local FloatPanel = {}
@@ -36,7 +36,7 @@ function FloatPanel:close()
   end
 
   if buf and vim.api.nvim_buf_is_valid(buf) then
-    vim.api.nvim_buf_clear_namespace(buf, vim.api.nvim_create_namespace("lemon_diff_syntax"), 0, -1)
+    vim.api.nvim_buf_clear_namespace(buf, vim.api.nvim_create_namespace "lemon_diff_syntax", 0, -1)
   end
   if win and vim.api.nvim_win_is_valid(win) then
     vim.api.nvim_win_close(win, true)

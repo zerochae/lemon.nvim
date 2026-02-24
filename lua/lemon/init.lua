@@ -1,6 +1,6 @@
 local M = {}
 
-local config = require("lemon.config")
+local config = require "lemon.config"
 
 ---@param opts? Lemon.Config
 function M.setup(opts)

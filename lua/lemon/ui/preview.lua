@@ -1,6 +1,6 @@
-local glyph = require("lemon.glyph")
-local diff = require("lemon.ui.diff")
-local extmarks = require("lemon.ui.extmarks")
+local glyph = require "lemon.glyph"
+local diff = require "lemon.ui.diff"
+local extmarks = require "lemon.ui.extmarks"
 
 ---@class Lemon.PreviewManager
 local PreviewManager = {}
@@ -136,16 +136,19 @@ function PreviewManager:update(idx)
     local resolved = self.resolve_cache[idx]
     if not resolved.edit then
       local lines = { "No preview available — Enter to execute" }
-      local ext = { { sign = { icon = glyph.ui.info, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
+      local ext =
+        { { sign = { icon = glyph.ui.info, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
       self.diff_cache[idx] = { lines = lines, extmarks = ext }
       render_preview(lines, ext)
       return
     end
     local diff_context = panel:get_config().diff_context or 3
-    local diffs = diff.compute(resolved.edit, vim.lsp.get_client_by_id(entry.client_id).offset_encoding or "utf-16", diff_context)
+    local diffs =
+      diff.compute(resolved.edit, vim.lsp.get_client_by_id(entry.client_id).offset_encoding or "utf-16", diff_context)
     if #diffs == 0 then
       local lines = { "No changes detected" }
-      local ext = { { sign = { icon = glyph.ui.info, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
+      local ext =
+        { { sign = { icon = glyph.ui.info, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
       self.diff_cache[idx] = { lines = lines, extmarks = ext }
       render_preview(lines, ext)
     else
@@ -168,7 +171,8 @@ function PreviewManager:update(idx)
     local diffs = diff.compute(action.edit, encoding, diff_context)
     if #diffs == 0 then
       local lines = { "No changes detected" }
-      local ext = { { sign = { icon = glyph.ui.info, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
+      local ext =
+        { { sign = { icon = glyph.ui.info, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
       self.diff_cache[idx] = { lines = lines, extmarks = ext }
       render_preview(lines, ext)
     else
@@ -183,7 +187,8 @@ function PreviewManager:update(idx)
 
   self.updating = true
   local loading_lines = { "Resolving..." }
-  local loading_ext = { { sign = { icon = glyph.ui.loading, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
+  local loading_ext =
+    { { sign = { icon = glyph.ui.loading, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
   render_preview(loading_lines, loading_ext)
   self.updating = true
 
@@ -199,7 +204,11 @@ function PreviewManager:update(idx)
         preview_mgr.resolve_cache[idx] = action
         local lines = { "Resolve failed" }
         local ext = {
-          { sign = { icon = glyph.ui.error, hl = "DiagnosticError" }, line_hl = "DiagnosticError", text_hl = "DiagnosticError" },
+          {
+            sign = { icon = glyph.ui.error, hl = "DiagnosticError" },
+            line_hl = "DiagnosticError",
+            text_hl = "DiagnosticError",
+          },
         }
         preview_mgr.diff_cache[idx] = { lines = lines, extmarks = ext }
         preview_mgr.updating = false
@@ -214,7 +223,8 @@ function PreviewManager:update(idx)
 
       if not resolved.edit then
         local lines = { "No preview available — Enter to execute" }
-        local ext = { { sign = { icon = glyph.ui.info, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
+        local ext =
+          { { sign = { icon = glyph.ui.info, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
         preview_mgr.diff_cache[idx] = { lines = lines, extmarks = ext }
         preview_mgr.updating = false
         if preview_mgr.current_idx == idx then
@@ -227,7 +237,8 @@ function PreviewManager:update(idx)
       local diffs = diff.compute(resolved.edit, encoding, diff_context)
       if #diffs == 0 then
         local lines = { "No changes detected" }
-        local ext = { { sign = { icon = glyph.ui.info, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
+        local ext =
+          { { sign = { icon = glyph.ui.info, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
         preview_mgr.diff_cache[idx] = { lines = lines, extmarks = ext }
         preview_mgr.updating = false
         if preview_mgr.current_idx == idx then
@@ -261,7 +272,7 @@ function PreviewManager:clear_preview()
     vim.api.nvim_buf_set_lines(panel.buf, preview_start, total, false, {})
   end
   vim.bo[panel.buf].modifiable = false
-  vim.api.nvim_buf_clear_namespace(panel.buf, vim.api.nvim_create_namespace("lemon_diff_syntax"), 0, -1)
+  vim.api.nvim_buf_clear_namespace(panel.buf, vim.api.nvim_create_namespace "lemon_diff_syntax", 0, -1)
 
   if panel:is_open() then
     local new_height = vim.api.nvim_buf_line_count(panel.buf)

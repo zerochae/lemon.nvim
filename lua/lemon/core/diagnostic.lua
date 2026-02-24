@@ -1,19 +1,19 @@
 local M = {}
 
-local glyph = require("lemon.glyph")
-local extmarks_ui = require("lemon.ui.extmarks")
-local footer = require("lemon.ui.footer")
-local FloatPanel = require("lemon.ui.float")
-local PreviewManager = require("lemon.ui.preview")
+local glyph = require "lemon.glyph"
+local extmarks_ui = require "lemon.ui.extmarks"
+local footer = require "lemon.ui.footer"
+local FloatPanel = require "lemon.ui.float"
+local PreviewManager = require "lemon.ui.preview"
 
 local DiagnosticPanel = setmetatable({}, { __index = FloatPanel })
 DiagnosticPanel.__index = DiagnosticPanel
 
-local panel = DiagnosticPanel:new("diagnostic")
+local panel = DiagnosticPanel:new "diagnostic"
 local preview = PreviewManager:new(panel)
 
 local function get_client_name(namespace_id, bufnr)
-  for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr })) do
+  for _, client in ipairs(vim.lsp.get_clients { bufnr = bufnr }) do
     local ok, ns = pcall(vim.lsp.diagnostic.get_namespace, client.id)
     if ok and ns == namespace_id then
       return client.name
@@ -62,10 +62,16 @@ function DiagnosticPanel:build_content(cursor_pos)
       local sev_a = math.huge
       local sev_b = math.huge
       for _, d in ipairs(diagnostics) do
-        if tostring(d.code or "") == code_a and d.severity < sev_a then sev_a = d.severity end
-        if tostring(d.code or "") == code_b and d.severity < sev_b then sev_b = d.severity end
+        if tostring(d.code or "") == code_a and d.severity < sev_a then
+          sev_a = d.severity
+        end
+        if tostring(d.code or "") == code_b and d.severity < sev_b then
+          sev_b = d.severity
+        end
       end
-      if sev_a ~= sev_b then return sev_a < sev_b end
+      if sev_a ~= sev_b then
+        return sev_a < sev_b
+      end
       return code_a < code_b
     end
     if a.severity ~= b.severity then
@@ -204,7 +210,7 @@ local function request_code_actions()
     return
   end
 
-  local clients = vim.lsp.get_clients({ bufnr = source_bufnr, method = "textDocument/codeAction" })
+  local clients = vim.lsp.get_clients { bufnr = source_bufnr, method = "textDocument/codeAction" }
   if #clients == 0 then
     return
   end
@@ -262,7 +268,10 @@ local function request_code_actions()
             local title = entry.action.title or "Action"
             table.insert(action_lines, title)
             local icon = glyph.numeric[i] or glyph.numeric[#glyph.numeric]
-            table.insert(action_extmarks, { sign = { icon = icon, hl = "LemonActionNumber" }, line_hl = "Normal", text_hl = "Normal" })
+            table.insert(
+              action_extmarks,
+              { sign = { icon = icon, hl = "LemonActionNumber" }, line_hl = "Normal", text_hl = "Normal" }
+            )
           end
 
           vim.bo[target_buf].modifiable = true
@@ -389,14 +398,14 @@ local function open_styled_float()
 end
 
 function M.goto_next()
-  vim.diagnostic.jump({ count = 1, float = false })
+  vim.diagnostic.jump { count = 1, float = false }
   vim.schedule(function()
     open_styled_float()
   end)
 end
 
 function M.goto_prev()
-  vim.diagnostic.jump({ count = -1, float = false })
+  vim.diagnostic.jump { count = -1, float = false }
   vim.schedule(function()
     open_styled_float()
   end)

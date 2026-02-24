@@ -1,14 +1,14 @@
 local M = {}
 
-local glyph = require("lemon.glyph")
-local footer = require("lemon.ui.footer")
-local FloatPanel = require("lemon.ui.float")
-local PreviewManager = require("lemon.ui.preview")
+local glyph = require "lemon.glyph"
+local footer = require "lemon.ui.footer"
+local FloatPanel = require "lemon.ui.float"
+local PreviewManager = require "lemon.ui.preview"
 
 local CodeActionPanel = setmetatable({}, { __index = FloatPanel })
 CodeActionPanel.__index = CodeActionPanel
 
-local panel = CodeActionPanel:new("code_action")
+local panel = CodeActionPanel:new "code_action"
 local preview = PreviewManager:new(panel)
 
 function CodeActionPanel:get_config()
@@ -179,7 +179,7 @@ function M.code_action()
   local source_bufnr = vim.api.nvim_get_current_buf()
   local cursor_pos = vim.api.nvim_win_get_cursor(0)
 
-  local clients = vim.lsp.get_clients({ bufnr = source_bufnr, method = "textDocument/codeAction" })
+  local clients = vim.lsp.get_clients { bufnr = source_bufnr, method = "textDocument/codeAction" }
   if #clients == 0 then
     vim.notify("Lemon: No LSP clients support code actions", vim.log.levels.INFO)
     return

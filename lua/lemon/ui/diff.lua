@@ -1,6 +1,6 @@
 local M = {}
 
-local glyph = require("lemon.glyph")
+local glyph = require "lemon.glyph"
 
 function M.compute(workspace_edit, encoding, ctxlen)
   local result = {}

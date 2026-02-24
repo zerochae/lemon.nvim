@@ -1,6 +1,6 @@
 local M = {}
 
-local glyph = require("lemon.glyph")
+local glyph = require "lemon.glyph"
 
 local function build_server(meta, server_name)
   if server_name then
@@ -29,7 +29,7 @@ end
 
 local function build_symbol(meta, source_bufnr)
   local cfg = require("lemon.config").get()
-  local symbol = vim.fn.expand("<cword>")
+  local symbol = vim.fn.expand "<cword>"
   if symbol == "" then
     return
   end
@@ -58,10 +58,18 @@ end
 
 function M.build(source_bufnr, server_name, code, opts)
   local meta = {}
-  if opts.show_server then build_server(meta, server_name) end
-  if opts.show_filetype then build_filetype(meta, source_bufnr) end
-  if opts.show_symbol then build_symbol(meta, source_bufnr) end
-  if opts.show_code then build_code(meta, code) end
+  if opts.show_server then
+    build_server(meta, server_name)
+  end
+  if opts.show_filetype then
+    build_filetype(meta, source_bufnr)
+  end
+  if opts.show_symbol then
+    build_symbol(meta, source_bufnr)
+  end
+  if opts.show_code then
+    build_code(meta, code)
+  end
   return meta
 end
 
