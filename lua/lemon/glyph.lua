@@ -1,0 +1,40 @@
+return {
+  numeric = {
+    [1] = "󰎤",
+    [2] = "󰎧",
+    [3] = "󰎪",
+    [4] = "󰎭",
+    [5] = "󰎱",
+    [6] = "󰎳",
+    [7] = "󰎶",
+    [8] = "󰎹",
+    [9] = "󰎼",
+    [10] = "󰎡",
+  },
+
+  severity = {
+    [1] = { icon = "", hl = "DiagnosticError" },
+    [2] = { icon = "", hl = "DiagnosticWarn" },
+    [3] = { icon = "", hl = "DiagnosticInfo" },
+    [4] = { icon = "", hl = "DiagnosticHint" },
+  },
+
+  diff = {
+    hunk_del = "",
+    hunk_add = "",
+    hunk_sign = "",
+    add = "󰐖",
+    delete = "󰍵",
+  },
+
+  ui = {
+    server = "󰚗",
+    file = "󰈙",
+    content = "󰧭",
+    code = "󰓹",
+    loading = "󰔟",
+    info = "󰍻",
+    error = "",
+    symbol_fallback = "󰈚",
+  },
+}

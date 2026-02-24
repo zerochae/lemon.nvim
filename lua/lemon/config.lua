@@ -15,6 +15,18 @@ M.defaults = {
     beacon = { enabled = true, fade_interval = 60, fade_step = 8 },
     tagstack = true,
   },
+  code_action = {
+    border = "single",
+    max_width = 0.6,
+    max_height = 0.4,
+    pad_right = 4,
+    scroll_indicator = true,
+    close_events = { "BufLeave" },
+    close_key = "q",
+    confirm_key = "<CR>",
+    back_key = "<BS>",
+    diff_context = 3,
+  },
   meta = {
     show_server = true,
     show_filetype = true,

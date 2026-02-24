@@ -28,4 +28,8 @@ function M.diagnostic_float()
   require("lemon.core.diagnostic").open_float()
 end
 
+function M.code_action()
+  require("lemon.core.code_action").code_action()
+end
+
 return M

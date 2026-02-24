@@ -1,28 +1,9 @@
 local M = {}
+local glyph = require("lemon.glyph")
 
 local diag_win = nil
 local diag_buf = nil
 local action_cache = {}
-
-local severity_sign = {
-  [1] = { icon = "", hl = "DiagnosticError" },
-  [2] = { icon = "", hl = "DiagnosticWarn" },
-  [3] = { icon = "", hl = "DiagnosticInfo" },
-  [4] = { icon = "", hl = "DiagnosticHint" },
-}
-
-local numeric_icons = {
-  [1] = "󰎤",
-  [2] = "󰎧",
-  [3] = "󰎪",
-  [4] = "󰎭",
-  [5] = "󰎱",
-  [6] = "󰎳",
-  [7] = "󰎶",
-  [8] = "󰎹",
-  [9] = "󰎼",
-  [10] = "󰎡",
-}
 
 local function close_float()
   if diag_win and vim.api.nvim_win_is_valid(diag_win) then
@@ -170,7 +151,7 @@ local function request_code_actions(source_bufnr, cursor_pos, target_buf)
 
           local base = #current_lines
           for i, _ in ipairs(all_actions) do
-            local icon = numeric_icons[i] or numeric_icons[#numeric_icons]
+            local icon = glyph.numeric[i] or glyph.numeric[#glyph.numeric]
             vim.api.nvim_buf_set_extmark(target_buf, ns, base + i, 0, {
               sign_text = icon,
               sign_hl_group = "LemonActionNumber",
@@ -237,7 +218,7 @@ local function open_styled_float(enter)
     if not providers[name] then
       providers[name] = true
       table.insert(lines, name)
-      table.insert(extmarks, { sign = { icon = "󰚗", hl = "LemonTitle" }, line_hl = "LemonTitle" })
+      table.insert(extmarks, { sign = { icon = glyph.ui.server, hl = "LemonTitle" }, line_hl = "LemonTitle" })
     end
   end
 
@@ -249,7 +230,7 @@ local function open_styled_float(enter)
 
     if is_child then
       local msg = "↳ " .. diag.message:gsub("\n", " "):gsub("%.$", "")
-      local s = severity_sign[diag.severity] or severity_sign[4]
+      local s = glyph.severity[diag.severity] or glyph.severity[4]
       table.insert(lines, msg)
       table.insert(extmarks, { sign = { icon = s.icon, hl = s.hl }, line_hl = s.hl })
     else
@@ -260,14 +241,14 @@ local function open_styled_float(enter)
 
       if code then
         table.insert(lines, code)
-        table.insert(extmarks, { sign = { icon = "󰓹", hl = "@label" }, line_hl = "@comment" })
+        table.insert(extmarks, { sign = { icon = glyph.ui.code, hl = "@label" }, line_hl = "@comment" })
       end
 
       table.insert(lines, "")
       table.insert(extmarks, {})
 
       local msg = diag.message:gsub("\n", " "):gsub("%.$", "")
-      local s = severity_sign[diag.severity] or severity_sign[4]
+      local s = glyph.severity[diag.severity] or glyph.severity[4]
       table.insert(lines, msg)
       table.insert(extmarks, { sign = { icon = s.icon, hl = s.hl }, line_hl = s.hl })
     end

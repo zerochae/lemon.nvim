@@ -18,13 +18,15 @@ vim.api.nvim_create_user_command("Lemon", function(opts)
     lemon.hover()
   elseif subcmd == "definition" then
     lemon.definition()
+  elseif subcmd == "code_action" then
+    lemon.code_action()
   else
     vim.notify("[lemon] Unknown subcommand: " .. subcmd, vim.log.levels.ERROR)
   end
 end, {
   nargs = "*",
   complete = function(arg_lead)
-    local subcommands = { "hover", "definition" }
+    local subcommands = { "hover", "definition", "code_action" }
     return vim.tbl_filter(function(s)
       return s:match("^" .. arg_lead)
     end, subcommands)

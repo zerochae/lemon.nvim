@@ -6,6 +6,13 @@ function M.setup()
     LemonBorder = { link = "FloatBorder" },
     LemonTitle = { link = "Title" },
     LemonBeacon = { link = "Search" },
+    LemonActionNumber = { link = "Number" },
+    LemonDiffAdd = { link = "DiffAdd" },
+    LemonDiffAddSign = { link = "Added" },
+    LemonDiffDelete = { link = "DiffDelete" },
+    LemonDiffDeleteSign = { link = "Removed" },
+    LemonDiffHunk = { link = "Comment" },
+    LemonDiffFile = { link = "Normal" },
   }
 
   for name, opts in pairs(highlights) do

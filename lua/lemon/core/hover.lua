@@ -1,5 +1,7 @@
 local M = {}
 
+local glyph = require("lemon.glyph")
+
 local hover_win = nil
 local hover_buf = nil
 
@@ -95,19 +97,19 @@ local function show_hover(contents, server_name, source_bufnr)
         return symbol_icons[name], "@" .. name
       end
     end
-    return "󰈚", nil
+    return glyph.ui.symbol_fallback, nil
   end
 
   local meta = {}
 
   if cfg.meta.show_server then
-    table.insert(meta, { icon = "󰚗", text = server_name, hl = "LemonTitle" })
+    table.insert(meta, { icon = glyph.ui.server, text = server_name, hl = "LemonTitle" })
   end
 
   if cfg.meta.show_filetype then
     local ft = vim.api.nvim_get_option_value("filetype", { buf = source_bufnr })
     if ft ~= "" then
-      local ft_icon, ft_hl = "󰈙", nil
+      local ft_icon, ft_hl = glyph.ui.file, nil
       local ok_devicon, devicons = pcall(require, "nvim-web-devicons")
       if ok_devicon then
         local fname = vim.api.nvim_buf_get_name(source_bufnr)
@@ -206,7 +208,7 @@ local function show_hover(contents, server_name, source_bufnr)
     end
     if not matched and first_content and l ~= "" and not l:match "^```" then
       vim.api.nvim_buf_set_extmark(hover_buf, ns, i, 0, {
-        sign_text = "󰧭",
+        sign_text = glyph.ui.content,
         sign_hl_group = "LemonTitle",
       })
       first_content = false
