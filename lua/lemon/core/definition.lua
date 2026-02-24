@@ -52,7 +52,7 @@ function M.goto_definition()
     vim.api.nvim_win_set_cursor(0, { target_lnum + 1, target_col })
 
     vim.schedule(function()
-      require("lemon.core.beacon").beacon(target_bufnr, target_lnum, target_col)
+      require("lemon.ui.beacon").beacon(target_bufnr, target_lnum, target_col)
     end)
   end)
 end
