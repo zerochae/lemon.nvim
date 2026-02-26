@@ -7,10 +7,24 @@
 ---@field code_action Lemon.CodeActionConfig
 ---@field signature_help Lemon.SignatureHelpConfig
 ---@field inlay_hint Lemon.InlayHintConfig
+---@field scope Lemon.ScopeConfig
 ---@field symbol_icons table<string, string>
 ---@field parsers table<string, Lemon.TagDef>
 ---@field highlights table<string, table>
 ---@field glyph table
+
+---@class Lemon.ScopeConfig
+---@field enabled boolean
+---@field separator string
+---@field depth_limit number
+---@field depth_limit_indicator string
+---@field safe_output boolean
+---@field lazy_update boolean
+---@field biscuit Lemon.ScopeBiscuitConfig
+
+---@class Lemon.ScopeBiscuitConfig
+---@field enabled boolean
+---@field visible_mode "hover"|"off_screen"|"always"
 ---@class Lemon.FooterConfig
 ---@field enabled boolean
 ---@field show_desc boolean

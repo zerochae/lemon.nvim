@@ -26,6 +26,66 @@ local function resolve_hl_fg(sources, fallback)
   return fallback
 end
 
+local kind_hl_sources = {
+  [1] = { "@text", "String" },
+  [2] = { "@module", "@namespace", "Include" },
+  [3] = { "@module", "@namespace", "Include" },
+  [4] = { "@module", "Include" },
+  [5] = { "@type", "Type" },
+  [6] = { "@property", "@field", "Identifier" },
+  [7] = { "@variable", "Identifier" },
+  [8] = { "@constant", "Constant" },
+  [9] = { "@type", "Type" },
+  [10] = { "@function", "Function" },
+  [11] = { "@constructor", "Special" },
+  [12] = { "@function.method", "@method", "Function" },
+  [13] = { "@type", "Type" },
+  [14] = { "@type.qualifier", "StorageClass" },
+  [15] = { "@type", "Type" },
+  [16] = { "@function", "Function" },
+  [17] = { "@number", "Number" },
+  [18] = { "@string", "String" },
+  [19] = { "@boolean", "Boolean" },
+  [20] = { "@type", "Type" },
+  [21] = { "@type", "Type" },
+  [22] = { "@constant.builtin", "Constant" },
+  [23] = { "@variable", "Identifier" },
+  [24] = { "@keyword", "Keyword" },
+  [25] = { "@constructor", "Special" },
+  [26] = { "@type.parameter", "@type", "Type" },
+}
+
+local function create_scope_highlights()
+  local normal_bg = color.get_hl_color("Normal", "bg") or "#1e1e2e"
+  local cfg = require("lemon.config").get()
+  local user_overrides = cfg.highlights or {}
+
+  for kind = 1, 26 do
+    local sources = kind_hl_sources[kind] or { "@type", "Type" }
+    local kind_fg = resolve_hl_fg(sources, "#89b4fa")
+
+    local kind_name = "LemonScopeKind_" .. kind
+    if not user_overrides[kind_name] then
+      vim.api.nvim_set_hl(0, kind_name, { fg = kind_fg })
+    end
+
+    local bis_name = "LemonScopeBiscuit_" .. kind
+    if not user_overrides[bis_name] then
+      vim.api.nvim_set_hl(0, bis_name, {
+        fg = kind_fg,
+        bg = color.blend(kind_fg, normal_bg, 0.08),
+      })
+    end
+  end
+
+  if not user_overrides["LemonScopeText"] then
+    vim.api.nvim_set_hl(0, "LemonScopeText", { link = "Normal" })
+  end
+  if not user_overrides["LemonScopeSeparator"] then
+    vim.api.nvim_set_hl(0, "LemonScopeSeparator", { link = "Comment" })
+  end
+end
+
 local function create_badge_highlights()
   local normal_bg = color.get_hl_color("Normal", "bg") or "#1e1e2e"
   local comment_fg = color.get_hl_color("Comment", "fg") or "#6c7086"
@@ -132,10 +192,14 @@ function M.setup()
   end
 
   create_badge_highlights()
+  create_scope_highlights()
 
   vim.api.nvim_create_autocmd("ColorScheme", {
     group = vim.api.nvim_create_augroup("lemon_badge_colors", { clear = true }),
-    callback = create_badge_highlights,
+    callback = function()
+      create_badge_highlights()
+      create_scope_highlights()
+    end,
   })
 end
 

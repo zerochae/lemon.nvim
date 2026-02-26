@@ -24,13 +24,15 @@ vim.api.nvim_create_user_command("Lemon", function(opts)
     lemon.signature_help()
   elseif subcmd == "inlay_hint" then
     lemon.inlay_hint.toggle()
+  elseif subcmd == "scope" then
+    lemon.scope.toggle()
   else
     vim.notify("[lemon] Unknown subcommand: " .. subcmd, vim.log.levels.ERROR)
   end
 end, {
   nargs = "*",
   complete = function(arg_lead)
-    local subcommands = { "hover", "definition", "code_action", "signature_help", "inlay_hint" }
+    local subcommands = { "hover", "definition", "code_action", "signature_help", "inlay_hint", "scope" }
     return vim.tbl_filter(function(s)
       return s:match("^" .. arg_lead)
     end, subcommands)

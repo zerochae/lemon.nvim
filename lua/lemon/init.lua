@@ -9,6 +9,7 @@ function M.setup(opts)
   require("lemon.ui.highlights").setup()
   require("lemon.core.signature_help").setup_auto()
   require("lemon.core.inlay_hint").setup()
+  require("lemon.core.scope").setup()
 end
 
 function M.hover()
@@ -48,6 +49,21 @@ M.inlay_hint = {
   end,
   toggle = function(bufnr)
     require("lemon.core.inlay_hint").toggle(bufnr)
+  end,
+}
+
+M.scope = {
+  get_data = function(bufnr)
+    return require("lemon.core.scope").get_data(bufnr)
+  end,
+  get_location = function(bufnr)
+    return require("lemon.core.scope").get_location(bufnr)
+  end,
+  is_available = function(bufnr)
+    return require("lemon.core.scope").is_available(bufnr)
+  end,
+  toggle = function()
+    require("lemon.core.scope").toggle()
   end,
 }
 

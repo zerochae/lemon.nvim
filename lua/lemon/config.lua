@@ -83,6 +83,15 @@ M.defaults = {
     object_threshold = 3,
     expand_offset = 0,
   },
+  scope = {
+    enabled = true,
+    separator = " > ",
+    depth_limit = 0,
+    depth_limit_indicator = "...",
+    safe_output = true,
+    lazy_update = false,
+    biscuit = { enabled = true, visible_mode = "hover" },
+  },
   symbol_icons = {
     ["function"] = "󰊕",
     ["function.call"] = "󰊕",
