@@ -245,4 +245,8 @@ function M.code_action()
   end
 end
 
-return M
+return setmetatable(M, {
+  __call = function(_)
+    return M.code_action()
+  end,
+})

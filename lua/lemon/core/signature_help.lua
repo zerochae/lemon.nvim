@@ -309,4 +309,8 @@ function M.setup_auto()
   })
 end
 
-return M
+return setmetatable(M, {
+  __call = function(_)
+    return M.signature_help()
+  end,
+})

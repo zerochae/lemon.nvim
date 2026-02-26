@@ -57,4 +57,8 @@ function M.goto_definition()
   end)
 end
 
-return M
+return setmetatable(M, {
+  __call = function(_)
+    return M.goto_definition()
+  end,
+})

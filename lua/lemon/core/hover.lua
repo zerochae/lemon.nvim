@@ -220,4 +220,8 @@ function M.hover()
   end)
 end
 
-return M
+return setmetatable(M, {
+  __call = function(_)
+    return M.hover()
+  end,
+})
