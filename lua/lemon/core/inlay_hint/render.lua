@@ -141,6 +141,10 @@ function M.render(bufnr, state, ns)
     local chunks = entry.chunks
 
     if #chunks > 0 then
+      local line_count = vim.api.nvim_buf_line_count(bufnr)
+      if pos.lnum >= line_count then
+        goto continue_render
+      end
       local line = vim.api.nvim_buf_get_lines(bufnr, pos.lnum, pos.lnum + 1, false)[1]
       local col = line and math.min(pos.col, #line) or 0
       vim.api.nvim_buf_set_extmark(bufnr, ns, pos.lnum, col, {
@@ -150,6 +154,7 @@ function M.render(bufnr, state, ns)
         priority = 2047,
       })
     end
+    ::continue_render::
   end
 
   local expand_line_offset = 0
