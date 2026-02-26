@@ -167,10 +167,7 @@ function M.render(bufnr, state, ns)
         local line_text = vim.api.nvim_buf_get_lines(bufnr, pos.lnum, pos.lnum + 1, false)[1] or ""
         local line_w = vim.fn.strdisplaywidth(line_text)
         local iw = line_inline_widths[pos.lnum] or 0
-        return math.max(
-          line_w + iw - leftcol + 2,
-          math.floor(win_width * (cfg.expand_offset or 0.6))
-        )
+        return math.max(line_w + iw - leftcol + 2, math.floor(win_width * (cfg.expand_offset or 0.6)))
       end
 
       local function render_expand_list(prefix_chunks, item_chunk_list)
@@ -251,7 +248,6 @@ function M.render(bufnr, state, ns)
         end
 
         lines_used = render_expand_list({ { prefix, obj_hl } }, field_chunk_list)
-
       elseif expand_data.params then
         local params = expand_data.params
         local base_hl = expand_data.base_hl
@@ -265,7 +261,6 @@ function M.render(bufnr, state, ns)
         end
 
         lines_used = render_expand_list({ { prefix, base_hl } }, param_chunk_list)
-
       elseif expand_data.label then
         local win_col = calc_win_col()
         local prefix = " ← " .. expand_data.icon .. " "

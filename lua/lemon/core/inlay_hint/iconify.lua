@@ -4,24 +4,42 @@ local glyph = require "lemon.glyph"
 
 local type_patterns = {
   number = {
-    "^[iu]%d+$", "^[iu]size$", "^f%d+$",
-    "^int%d*$", "^uint%d*$", "^float%d*$", "^double$",
-    "^number$", "^Number$", "^byte$",
+    "^[iu]%d+$",
+    "^[iu]size$",
+    "^f%d+$",
+    "^int%d*$",
+    "^uint%d*$",
+    "^float%d*$",
+    "^double$",
+    "^number$",
+    "^Number$",
+    "^byte$",
   },
   string = {
-    "^string$", "^String$", "^str$", "^&str$", "^char$",
+    "^string$",
+    "^String$",
+    "^str$",
+    "^&str$",
+    "^char$",
   },
   boolean = {
-    "^bool$", "^boolean$", "^Boolean$",
+    "^bool$",
+    "^boolean$",
+    "^Boolean$",
   },
   null = {
-    "^null$", "^nil$", "^None$",
+    "^null$",
+    "^nil$",
+    "^None$",
   },
   undefined = {
-    "^undefined$", "^void$", "^%(%)$",
+    "^undefined$",
+    "^void$",
+    "^%(%)$",
   },
   unknown = {
-    "^unknown$", "^any$",
+    "^unknown$",
+    "^any$",
   },
   never = {
     "^never$",
@@ -30,14 +48,23 @@ local type_patterns = {
     "^Promise<",
   },
   array = {
-    "^Vec<", "^%[%]", "^Array<", "^List<", "^Slice<",
+    "^Vec<",
+    "^%[%]",
+    "^Array<",
+    "^List<",
+    "^Slice<",
     "%[%]$",
   },
   object = {
     "^{",
   },
   ["function"] = {
-    "^fn%(", "^Fn%(", "^FnOnce%(", "^FnMut%(", "^func%(", "^Fun<",
+    "^fn%(",
+    "^Fn%(",
+    "^FnOnce%(",
+    "^FnMut%(",
+    "^func%(",
+    "^Fun<",
     "^%(.*%) =>",
   },
 }
@@ -49,7 +76,7 @@ function M.detect_type(label)
   end
   local stripped = label:gsub("^:%s*", "")
 
-  if icons.array and stripped:find("%[%]$") then
+  if icons.array and stripped:find "%[%]$" then
     local element = stripped:gsub("%[%]$", "")
     if element ~= "" then
       local elem_icon = M.detect_type(element)
@@ -123,7 +150,7 @@ function M.compact_inner_objects(text)
 end
 
 function M.iconify_words(text)
-  local lt = text:find("<")
+  local lt = text:find "<"
   if not lt then
     return text
   end
@@ -181,7 +208,7 @@ function M.split_union(text)
 end
 
 function M.iconify_union(text, show_text)
-  if not text:find("|") then
+  if not text:find "|" then
     return text
   end
   local fallback = (glyph.inlay.types and glyph.inlay.types.generic) or glyph.inlay.type or ""

@@ -11,7 +11,7 @@ local split_union = iconify.split_union
 local iconify_union = iconify.iconify_union
 
 function M.parse_object_fields(label)
-  local inner = label:match("^{%s*(.-)%s*}$")
+  local inner = label:match "^{%s*(.-)%s*}$"
   if not inner or inner == "" then
     return nil
   end
@@ -34,7 +34,7 @@ function M.parse_object_fields(label)
     elseif (ch == ";" or ch == ",") and depth == 0 then
       local trimmed = vim.trim(current)
       if trimmed ~= "" then
-        local name, type_str = trimmed:match("^([%w_]+)%??:%s*(.+)$")
+        local name, type_str = trimmed:match "^([%w_]+)%??:%s*(.+)$"
         if name and type_str then
           table.insert(fields, { name = name, type = vim.trim(type_str) })
         end
@@ -47,7 +47,7 @@ function M.parse_object_fields(label)
 
   local trimmed = vim.trim(current)
   if trimmed ~= "" then
-    local name, type_str = trimmed:match("^([%w_]+)%??:%s*(.+)$")
+    local name, type_str = trimmed:match "^([%w_]+)%??:%s*(.+)$"
     if name and type_str then
       table.insert(fields, { name = name, type = vim.trim(type_str) })
     end
@@ -57,12 +57,12 @@ function M.parse_object_fields(label)
 end
 
 function M.parse_generic_params(label)
-  local base_name = label:match("^(.-)%s*<")
+  local base_name = label:match "^(.-)%s*<"
   if not base_name then
     return nil, nil
   end
 
-  local start = label:find("<")
+  local start = label:find "<"
   if not start then
     return nil, nil
   end
@@ -111,7 +111,7 @@ function M.build_field_chunks(field, border, padded_name, obj_hl)
 
   local chunks = {}
   if type_kind == "function" then
-    local ret = field.type:match("%)%s*=>%s*(.+)$")
+    local ret = field.type:match "%)%s*=>%s*(.+)$"
     if ret then
       local ret_icon, ret_kind = detect_type(ret)
       local ret_hl = ret_kind and ("LemonInlayTypeObjField_" .. ret_kind) or field_hl
@@ -148,10 +148,7 @@ function M.build_generic_param_chunks(param_text, border, base_hl, hide_icon)
   if hide_icon then
     display = iconify_label(iconify_union(param_text, true))
   else
-    local display_icon = type_icon
-      or (icons and icons.generic)
-      or glyph.inlay.type
-      or ""
+    local display_icon = type_icon or (icons and icons.generic) or glyph.inlay.type or ""
     display = display_icon .. " " .. iconify_label(iconify_union(param_text, true))
   end
 
@@ -162,7 +159,7 @@ function M.build_generic_param_chunks(param_text, border, base_hl, hide_icon)
 end
 
 function M.build_function_chunks(label, icon, hl, cfg)
-  local ret = label:match("%)%s*=>%s*(.+)$")
+  local ret = label:match "%)%s*=>%s*(.+)$"
   if not ret then
     return nil
   end
@@ -173,7 +170,7 @@ function M.build_function_chunks(label, icon, hl, cfg)
   if cfg.fn_icon then
     fn_part = " " .. icon .. " "
   else
-    local params = label:match("^(%(.-%))")
+    local params = label:match "^(%(.-%))"
     fn_part = " " .. (params or "") .. " "
   end
 
@@ -197,7 +194,7 @@ function M.build_function_chunks(label, icon, hl, cfg)
     },
   }
 
-  if ret:find("|") then
+  if ret:find "|" then
     local parts = split_union(ret)
     if #parts > 1 then
       result.expand = {
@@ -207,7 +204,7 @@ function M.build_function_chunks(label, icon, hl, cfg)
         base_hl = hl,
       }
     end
-  elseif ret:find("<") then
+  elseif ret:find "<" then
     local base_name, params = M.parse_generic_params(ret)
     if params then
       result.expand = {
@@ -272,13 +269,13 @@ function M.format_hint(hint, cfg)
   local text = fmt:gsub("${hint}", label)
   if not is_param then
     text = compact_inner_objects(text)
-    if text:find("<") then
+    if text:find "<" then
       text = iconify_words(text)
       if not cfg.generic_text then
-        text = text:match("(<.+)") or text
+        text = text:match "(<.+)" or text
       end
     end
-    if text:find("|") then
+    if text:find "|" then
       text = iconify_union(text, cfg.type_text)
     end
   end
@@ -347,7 +344,7 @@ function M.format_hint(hint, cfg)
   }
 
   if not is_param then
-    if label:find("<") then
+    if label:find "<" then
       local base_name, params = M.parse_generic_params(label)
       if params then
         result.expand = {
@@ -357,7 +354,7 @@ function M.format_hint(hint, cfg)
           base_hl = hl,
         }
       end
-    elseif label:find("|") then
+    elseif label:find "|" then
       local parts = split_union(label)
       if #parts > 1 then
         result.expand = {
