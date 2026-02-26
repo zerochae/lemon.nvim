@@ -64,7 +64,9 @@
 ---@field type_text boolean
 ---@field fn_icon boolean
 ---@field fn_return_text boolean
+---@field generic_text boolean
 ---@field object_threshold number
+---@field expand_offset number
 
 ---@class Lemon.DefinitionConfig
 ---@field beacon Lemon.BeaconConfig
