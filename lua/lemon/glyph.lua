@@ -67,6 +67,27 @@ local defaults = {
     select = "",
   },
 
+  inlay = {
+    type = "󰠱",
+    param = "󰏪",
+    types = {
+      number = "󰎠",
+      string = "󰉿",
+      boolean = "󰨙",
+      null = "󰟢",
+      undefined = "󰌶",
+      unknown = "󰋗",
+      never = "󰅙",
+      array = "󰅪",
+      object = "󰅩",
+      ["function"] = "󰊕",
+      promise = "󰔟",
+      generic = "󰗴",
+    },
+    arrow = "→",
+    params = {},
+  },
+
   ui = {
     server = "󰚗",
     file = "󰈙",

@@ -8,6 +8,7 @@ function M.setup(opts)
   require("lemon.glyph").setup(config.get().glyph)
   require("lemon.ui.highlights").setup()
   require("lemon.core.signature_help").setup_auto()
+  require("lemon.core.inlay_hint").setup()
 end
 
 function M.hover()
@@ -37,5 +38,17 @@ end
 function M.signature_help()
   require("lemon.core.signature_help").signature_help()
 end
+
+M.inlay_hint = {
+  enable = function(bufnr)
+    require("lemon.core.inlay_hint").enable(bufnr)
+  end,
+  disable = function(bufnr)
+    require("lemon.core.inlay_hint").disable(bufnr)
+  end,
+  toggle = function(bufnr)
+    require("lemon.core.inlay_hint").toggle(bufnr)
+  end,
+}
 
 return M

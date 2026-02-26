@@ -6,6 +6,7 @@
 ---@field definition Lemon.DefinitionConfig
 ---@field code_action Lemon.CodeActionConfig
 ---@field signature_help Lemon.SignatureHelpConfig
+---@field inlay_hint Lemon.InlayHintConfig
 ---@field symbol_icons table<string, string>
 ---@field parsers table<string, Lemon.TagDef>
 ---@field highlights table<string, table>
@@ -47,6 +48,23 @@
 ---@field conceal boolean
 ---@field auto boolean
 ---@field footer Lemon.FooterConfig
+
+---@class Lemon.InlayHintConfig
+---@field enabled boolean
+---@field only_current_line boolean
+---@field show_parameter_hints boolean
+---@field show_type_hints boolean
+---@field type_format string
+---@field param_format string
+---@field hide_in_insert boolean
+---@field position string
+---@field badge_alpha number
+---@field param_icon boolean
+---@field type_icon boolean
+---@field type_text boolean
+---@field fn_icon boolean
+---@field fn_return_text boolean
+---@field object_threshold number
 
 ---@class Lemon.DefinitionConfig
 ---@field beacon Lemon.BeaconConfig
