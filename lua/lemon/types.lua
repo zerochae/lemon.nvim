@@ -25,6 +25,7 @@
 ---@class Lemon.ScopeBiscuitConfig
 ---@field enabled boolean
 ---@field visible_mode "hover"|"off_screen"|"always"
+---@field treesitter boolean
 ---@class Lemon.FooterConfig
 ---@field enabled boolean
 ---@field show_desc boolean

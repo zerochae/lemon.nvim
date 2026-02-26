@@ -78,6 +78,14 @@ local function create_scope_highlights()
     end
   end
 
+  local kw_fg = resolve_hl_fg({ "@keyword", "Keyword" }, "#cba6f7")
+  if not user_overrides["LemonScopeBiscuitKeyword"] then
+    vim.api.nvim_set_hl(0, "LemonScopeBiscuitKeyword", {
+      fg = kw_fg,
+      bg = color.blend(kw_fg, normal_bg, 0.08),
+    })
+  end
+
   if not user_overrides["LemonScopeText"] then
     vim.api.nvim_set_hl(0, "LemonScopeText", { link = "Normal" })
   end

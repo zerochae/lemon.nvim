@@ -42,7 +42,7 @@ local function render(bufnr)
   state.path = path
 
   if cfg.biscuit.enabled then
-    biscuit.render(bufnr, ns, state.symbols, winid, cfg.biscuit.visible_mode, cursor_line)
+    biscuit.render(bufnr, ns, state.symbols, winid, cfg.biscuit.visible_mode, cursor_line, cfg.biscuit)
   end
 end
 

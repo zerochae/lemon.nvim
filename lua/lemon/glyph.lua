@@ -69,13 +69,13 @@ local defaults = {
 
   inlay = {
     type = "󰠱",
-    param = "󰏪",
+    param = "",
     types = {
       number = "󰎠",
       string = "󰉿",
       boolean = "󰨙",
       null = "󰟢",
-      undefined = "󰌶",
+      undefined = "󰘥",
       unknown = "󰋗",
       never = "󰅙",
       array = "󰅪",
@@ -115,6 +115,24 @@ local defaults = {
     [24] = "󰀦",
     [25] = "󰡱",
     [26] = "󰗴",
+  },
+
+  scope_keyword = {
+    ["if"] = "󰘁",
+    ["for"] = "󰑖",
+    ["for_in"] = "󰑖",
+    ["while"] = "󰑖",
+    ["switch"] = "󰘁",
+    ["match"] = "󰘁",
+    ["try"] = "󰔶",
+    ["do"] = "󰑖",
+    ["with"] = "󰅩",
+    ["repeat"] = "󰑖",
+    ["select"] = "󰘁",
+    ["loop"] = "󰑖",
+    ["fn"] = "󰊕",
+    ["jsx"] = "",
+    ["tsx"] = "",
   },
 
   ui = {

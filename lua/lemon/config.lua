@@ -90,7 +90,7 @@ M.defaults = {
     depth_limit_indicator = "...",
     safe_output = true,
     lazy_update = false,
-    biscuit = { enabled = true, visible_mode = "hover" },
+    biscuit = { enabled = true, visible_mode = "hover", treesitter = true },
   },
   symbol_icons = {
     ["function"] = "󰊕",
