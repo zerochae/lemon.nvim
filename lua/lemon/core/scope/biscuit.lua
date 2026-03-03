@@ -3,6 +3,22 @@ local M = {}
 local data = require "lemon.core.scope.data"
 local treesitter = require "lemon.core.scope.treesitter"
 
+local control_flow_names = {
+  ["for"] = true,
+  ["if"] = true,
+  ["while"] = true,
+  ["do"] = true,
+  ["repeat"] = true,
+  ["switch"] = true,
+  ["try"] = true,
+  ["with"] = true,
+  ["select"] = true,
+  ["match"] = true,
+  ["else"] = true,
+  ["elseif"] = true,
+  ["loop"] = true,
+}
+
 function M.render(bufnr, ns, symbols, winid, visible_mode, cursor_line, cfg)
   local visible_start = vim.fn.line("w0", winid) - 1
   local visible_end = vim.fn.line("w$", winid) - 1
@@ -12,17 +28,19 @@ function M.render(bufnr, ns, symbols, winid, visible_mode, cursor_line, cfg)
   local used_lines = {}
 
   for _, entry in ipairs(lsp_entries) do
-    used_lines[entry.end_line] = true
     local sym = entry.symbol
-    local icon = data.kind_icon(sym.kind)
-    local hl = "LemonScopeBiscuit_" .. sym.kind
+    if not control_flow_names[sym.name] then
+      used_lines[entry.end_line] = true
+      local icon = data.kind_icon(sym.kind)
+      local hl = "LemonScopeBiscuit_" .. sym.kind
 
-    pcall(vim.api.nvim_buf_set_extmark, bufnr, ns, entry.end_line, 0, {
-      virt_text = { { " " .. icon .. " " .. sym.name .. " ", hl } },
-      virt_text_pos = "eol",
-      priority = 10,
-      hl_mode = "combine",
-    })
+      pcall(vim.api.nvim_buf_set_extmark, bufnr, ns, entry.end_line, 0, {
+        virt_text = { { " " .. icon .. " " .. sym.name .. " ", hl } },
+        virt_text_pos = "eol",
+        priority = 10,
+        hl_mode = "combine",
+      })
+    end
   end
 
   if cfg and cfg.treesitter then
@@ -36,7 +54,7 @@ function M.render(bufnr, ns, symbols, winid, visible_mode, cursor_line, cfg)
         pcall(vim.api.nvim_buf_set_extmark, bufnr, ns, entry.end_line, 0, {
           virt_text = { { " " .. icon .. " " .. entry.text .. " ", "LemonScopeBiscuitKeyword" } },
           virt_text_pos = "eol",
-          priority = 9,
+          priority = 10,
           hl_mode = "combine",
         })
       end

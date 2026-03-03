@@ -13,6 +13,18 @@ function Lemon.setup(opts)
   _G.Lemon = Lemon
 end
 
+function Lemon.diagnostic_next()
+  require("lemon.core.diagnostic").goto_next()
+end
+
+function Lemon.diagnostic_prev()
+  require("lemon.core.diagnostic").goto_prev()
+end
+
+function Lemon.diagnostic_open()
+  require("lemon.core.diagnostic").open_float()
+end
+
 return setmetatable(Lemon, {
   __index = function(t, k)
     local ok, mod = pcall(require, "lemon.core." .. k)

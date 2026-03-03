@@ -43,8 +43,12 @@ local function first_line_text(node, bufnr, max_len)
     return ""
   end
   line = vim.trim(line)
+  line = line:gsub("%s+do%s*$", "")
+  line = line:gsub("%s+then%s*$", "")
+  line = line:gsub("%s*%{%s*$", "")
+  line = line:gsub("%s*:%s*$", "")
   if #line > max_len then
-    line = line:sub(1, max_len) .. "…"
+    line = line:sub(1, max_len - 1) .. "…"
   end
   return line
 end
