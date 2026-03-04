@@ -2,12 +2,16 @@ local M = {}
 
 local data = require "lemon.core.scope.data"
 local biscuit = require "lemon.core.scope.biscuit"
+local debounce = require "lemon.util.debounce"
 
 local ns = vim.api.nvim_create_namespace "lemon_scope"
 local augroup = vim.api.nvim_create_augroup("lemon_scope", { clear = true })
 
 ---@type table<number, { symbols: table[], path: table[] }>
 local bufstates = {}
+
+---@type table<number, function>
+local debounced_renders = {}
 
 local enabled = true
 
@@ -82,6 +86,13 @@ local function setup_buf(bufnr)
 
   bufstates[bufnr] = { symbols = {}, path = {} }
 
+  local move_count = 0
+
+  debounced_renders[bufnr] = debounce(50, function()
+    move_count = 0
+    render(bufnr)
+  end)
+
   local cfg = get_cfg()
   local events = cfg.lazy_update and { "CursorHold" } or { "CursorMoved", "CursorHold" }
 
@@ -89,7 +100,11 @@ local function setup_buf(bufnr)
     group = augroup,
     buffer = bufnr,
     callback = function()
-      render(bufnr)
+      move_count = move_count + 1
+      if move_count == 2 then
+        vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+      end
+      debounced_renders[bufnr]()
     end,
   })
 
@@ -97,7 +112,7 @@ local function setup_buf(bufnr)
     group = augroup,
     buffer = bufnr,
     callback = function()
-      render(bufnr)
+      debounced_renders[bufnr]()
     end,
   })
 
@@ -106,6 +121,7 @@ local function setup_buf(bufnr)
     buffer = bufnr,
     callback = function()
       bufstates[bufnr] = nil
+      debounced_renders[bufnr] = nil
     end,
   })
 

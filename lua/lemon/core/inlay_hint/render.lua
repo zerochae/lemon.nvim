@@ -76,18 +76,24 @@ function M.render(bufnr, state, ns)
   end
 
   local cfg = get_cfg()
-  vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+
+  local visible_start = vim.fn.line "w0" - 1
+  local visible_end = vim.fn.line "w$" - 1
+
+  vim.api.nvim_buf_clear_namespace(bufnr, ns, visible_start, visible_end + 1)
 
   local hints_by_pos = {}
   for _, client_hints in pairs(state.client_hints) do
     for lnum, hints in pairs(client_hints) do
-      for _, hint in ipairs(hints) do
-        local col = hint._col or 0
-        local key = lnum .. ":" .. col
-        if not hints_by_pos[key] then
-          hints_by_pos[key] = { lnum = lnum, col = col, hints = {} }
+      if lnum >= visible_start and lnum <= visible_end then
+        for _, hint in ipairs(hints) do
+          local col = hint._col or 0
+          local key = lnum .. ":" .. col
+          if not hints_by_pos[key] then
+            hints_by_pos[key] = { lnum = lnum, col = col, hints = {} }
+          end
+          table.insert(hints_by_pos[key].hints, hint)
         end
-        table.insert(hints_by_pos[key].hints, hint)
       end
     end
   end

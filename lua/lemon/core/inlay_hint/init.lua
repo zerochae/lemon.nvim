@@ -1,12 +1,16 @@
 local M = {}
 
 local render_mod = require "lemon.core.inlay_hint.render"
+local debounce = require "lemon.util.debounce"
 
 local ns = vim.api.nvim_create_namespace "lemon_inlay_hint"
 local augroup = vim.api.nvim_create_augroup("lemon_inlay_hint", { clear = true })
 
 ---@type table<number, { enabled: boolean, client_hints: table<number, table<number, table[]>> }>
 local bufstates = {}
+
+---@type table<number, function>
+local debounced_renders = {}
 
 local function get_cfg()
   return require("lemon.config").get().inlay_hint
@@ -86,11 +90,16 @@ end
 local function setup_buf_autocmds(bufnr)
   local cfg = get_cfg()
 
+  debounced_renders[bufnr] = debounce(50, function()
+    render(bufnr)
+  end)
+
   vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
     group = augroup,
     buffer = bufnr,
     callback = function()
       bufstates[bufnr] = nil
+      debounced_renders[bufnr] = nil
     end,
   })
 
@@ -116,7 +125,7 @@ local function setup_buf_autocmds(bufnr)
     group = augroup,
     buffer = bufnr,
     callback = function()
-      render(bufnr)
+      debounced_renders[bufnr]()
     end,
   })
 

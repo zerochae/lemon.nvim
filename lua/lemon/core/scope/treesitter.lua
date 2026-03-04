@@ -73,11 +73,15 @@ function M.find_scope_nodes(bufnr, visible_start, visible_end, visible_mode, cur
     local root = tree:root()
 
     local function walk(node)
+      local start_row, _, end_row, _ = node:range()
+
+      if start_row > visible_end then
+        return
+      end
+
       local node_type = node:type()
 
       if scope_node_types[node_type] then
-        local start_row, _, end_row, _ = node:range()
-
         if start_row ~= end_row and end_row >= visible_start and end_row <= visible_end then
           local off_screen = start_row < visible_start
           local on_cursor = cursor_line == end_row
