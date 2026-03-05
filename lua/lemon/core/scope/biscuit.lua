@@ -31,7 +31,7 @@ function M.render(bufnr, ns, symbols, winid, visible_mode, cursor_line, cfg)
     local sym = entry.symbol
     if not control_flow_names[sym.name] then
       used_lines[entry.end_line] = true
-      local icon = data.kind_icon(sym.kind)
+      local icon = data.biscuit_icon(sym.kind)
       local hl = "LemonScopeBiscuit_" .. sym.kind
 
       pcall(vim.api.nvim_buf_set_extmark, bufnr, ns, entry.end_line, 0, {

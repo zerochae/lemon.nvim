@@ -117,6 +117,8 @@ local defaults = {
     [26] = "󰗴",
   },
 
+  biscuit_kind = {},
+
   scope_keyword = {
     ["if"] = "󰘁",
     ["for"] = "󰑖",

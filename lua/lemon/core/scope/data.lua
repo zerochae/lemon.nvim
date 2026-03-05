@@ -36,6 +36,25 @@ function M.kind_icon(kind)
   return icons[kind] or glyph.get().ui.symbol_fallback
 end
 
+local kind_name_to_number = {}
+for i, name in ipairs(kind_names) do
+  kind_name_to_number[name] = i
+end
+
+function M.biscuit_icon(kind)
+  local overrides = glyph.get().biscuit_kind
+  if overrides then
+    if overrides[kind] then
+      return overrides[kind]
+    end
+    local name = kind_names[kind]
+    if name and overrides[name] then
+      return overrides[name]
+    end
+  end
+  return M.kind_icon(kind)
+end
+
 function M.kind_name(kind)
   return kind_names[kind] or "Unknown"
 end
