@@ -78,7 +78,7 @@ function PreviewManager:update(idx)
 
     local cfg = panel:get_config()
     local columns = vim.api.nvim_get_option_value("columns", {})
-    local max_width = math.floor(columns * cfg.max_width)
+    local max_width = cfg.max_width and math.floor(columns * cfg.max_width) or columns
     local sign_width = 2
     local base = preview_mgr.base_width or vim.api.nvim_win_get_width(panel.win)
     local max_content_len = base - sign_width
