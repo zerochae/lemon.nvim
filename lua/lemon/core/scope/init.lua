@@ -104,7 +104,9 @@ local function setup_buf(bufnr)
       if move_count == 2 then
         vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
       end
-      debounced_renders[bufnr]()
+      if debounced_renders[bufnr] then
+        debounced_renders[bufnr]()
+      end
     end,
   })
 
@@ -112,7 +114,9 @@ local function setup_buf(bufnr)
     group = augroup,
     buffer = bufnr,
     callback = function()
-      debounced_renders[bufnr]()
+      if debounced_renders[bufnr] then
+        debounced_renders[bufnr]()
+      end
     end,
   })
 

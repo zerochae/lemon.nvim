@@ -125,7 +125,9 @@ local function setup_buf_autocmds(bufnr)
     group = augroup,
     buffer = bufnr,
     callback = function()
-      debounced_renders[bufnr]()
+      if debounced_renders[bufnr] then
+        debounced_renders[bufnr]()
+      end
     end,
   })
 
