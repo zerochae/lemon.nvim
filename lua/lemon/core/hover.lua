@@ -85,15 +85,17 @@ function HoverPanel:build_content(contents, server_name)
   local meta_lines, meta_ext = self:build_meta(server_name)
 
   self.buf = vim.api.nvim_create_buf(false, true)
-  vim.lsp.util.stylize_markdown(self.buf, lines, {})
 
-  local meta_insert = {}
+  local all_lines = {}
   for i = 1, #meta_lines do
-    table.insert(meta_insert, meta_lines[i])
+    all_lines[#all_lines + 1] = meta_lines[i]
   end
-  table.insert(meta_insert, "")
-  vim.api.nvim_buf_set_lines(self.buf, 0, 0, false, meta_insert)
-  lines = vim.api.nvim_buf_get_lines(self.buf, 0, -1, false)
+  all_lines[#all_lines + 1] = ""
+  for _, line in ipairs(lines) do
+    all_lines[#all_lines + 1] = line
+  end
+  vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, all_lines)
+  lines = all_lines
 
   self._meta_ext = meta_ext
   self._meta_count = #meta_lines
