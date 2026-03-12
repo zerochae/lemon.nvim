@@ -87,13 +87,22 @@ function HoverPanel:build_content(contents, server_name)
 
   self.buf = vim.api.nvim_create_buf(false, true)
 
+  local fence_map = {
+    lua = "luau",
+  }
+
   local all_lines = {}
   for i = 1, #meta_lines do
     all_lines[#all_lines + 1] = meta_lines[i]
   end
   all_lines[#all_lines + 1] = ""
   for _, line in ipairs(lines) do
-    all_lines[#all_lines + 1] = line
+    local lang = line:match "^```(%w+)$"
+    if lang and fence_map[lang] then
+      all_lines[#all_lines + 1] = "```" .. fence_map[lang]
+    else
+      all_lines[#all_lines + 1] = line
+    end
   end
   vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, all_lines)
   lines = all_lines
@@ -129,6 +138,9 @@ local hover_kind_hl = {
   module = "LemonHoverKindModule",
   import = "LemonHoverKindModule",
   export = "LemonHoverKindModule",
+  field = "LemonHoverKindProperty",
+  global = "LemonHoverKindVariable",
+  ["local"] = "LemonHoverKindVariable",
 }
 
 local function get_hover_kind_icon(kind)
