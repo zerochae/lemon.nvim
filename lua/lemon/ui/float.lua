@@ -107,6 +107,14 @@ function FloatPanel:open_win(lines)
   vim.api.nvim_set_option_value("signcolumn", "yes", { win = self.win })
   vim.api.nvim_set_option_value("wrap", true, { win = self.win })
 
+  vim.bo[self.buf].modifiable = false
+  vim.api.nvim_create_autocmd("InsertEnter", {
+    buffer = self.buf,
+    callback = function()
+      vim.cmd.stopinsert()
+    end,
+  })
+
   if cfg.conceal then
     vim.api.nvim_set_option_value("conceallevel", 2, { win = self.win })
     vim.api.nvim_set_option_value("concealcursor", "niv", { win = self.win })
