@@ -15,6 +15,7 @@ M.defaults = {
     show_symbol = true,
     hide_diagnostic = false,
     conceal = true,
+    show_kind_prefix = false,
     footer = { enabled = true, show_desc = true },
   },
   definition = {

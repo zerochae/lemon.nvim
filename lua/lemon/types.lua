@@ -46,6 +46,7 @@
 ---@field show_symbol boolean
 ---@field conceal boolean
 ---@field confirm_key string
+---@field show_kind_prefix boolean
 ---@field footer Lemon.FooterConfig
 
 ---@class Lemon.DiagnosticConfig : Lemon.BasePanelConfig
@@ -137,6 +138,7 @@
 ---@field confirm_key? string
 ---@field back_key? string
 ---@field hide_diagnostic? boolean
+---@field show_kind_prefix? boolean
 ---@field footer? Lemon.FooterConfig
 
 ---@class Lemon.PreviewManager

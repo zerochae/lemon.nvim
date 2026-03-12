@@ -117,6 +117,29 @@ local defaults = {
     [26] = "󰗴",
   },
 
+  hover_kind = {
+    alias = "󰌹",
+    method = "󰊕",
+    property = "󰜢",
+    ["function"] = "󰊕",
+    parameter = "󰏪",
+    variable = "󰀫",
+    ["enum member"] = "󰕘",
+    ["type alias"] = "󰠱",
+    interface = "󰜰",
+    class = "󰌗",
+    constructor = "󰡱",
+    namespace = "󰅩",
+    module = "󰅩",
+    const = "󰏿",
+    let = "󰀫",
+    enum = "󰕘",
+    index = "󰜢",
+    type = "󰠱",
+    import = "󰋺",
+    export = "󰈕",
+  },
+
   biscuit_kind = {},
 
   scope_keyword = {

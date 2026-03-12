@@ -66,6 +66,7 @@ local function process_contents(contents)
   return result
 end
 
+---@return Lemon.HoverConfig
 function HoverPanel:get_config()
   return FloatPanel.get_config(self)
 end
@@ -103,6 +104,44 @@ function HoverPanel:build_content(contents, server_name)
   return lines, {}
 end
 
+local function parse_hover_kind(line)
+  return line:match "^%((.-)%)"
+end
+
+local hover_kind_hl = {
+  alias = "LemonHoverKindAlias",
+  method = "LemonHoverKindFunction",
+  ["function"] = "LemonHoverKindFunction",
+  constructor = "LemonHoverKindFunction",
+  property = "LemonHoverKindProperty",
+  index = "LemonHoverKindProperty",
+  variable = "LemonHoverKindVariable",
+  parameter = "LemonHoverKindVariable",
+  const = "LemonHoverKindVariable",
+  let = "LemonHoverKindVariable",
+  class = "LemonHoverKindType",
+  interface = "LemonHoverKindType",
+  ["type alias"] = "LemonHoverKindType",
+  type = "LemonHoverKindType",
+  enum = "LemonHoverKindEnum",
+  ["enum member"] = "LemonHoverKindEnum",
+  namespace = "LemonHoverKindModule",
+  module = "LemonHoverKindModule",
+  import = "LemonHoverKindModule",
+  export = "LemonHoverKindModule",
+}
+
+local function get_hover_kind_icon(kind)
+  if not kind then
+    return nil, nil
+  end
+  local hover_kinds = glyph.hover_kind or {}
+  local lower = kind:lower()
+  local icon = hover_kinds[lower]
+  local hl = hover_kind_hl[lower] or "LemonHoverKind"
+  return icon, hl
+end
+
 function HoverPanel:apply_extmarks(_, lines)
   local ns = vim.api.nvim_create_namespace "lemon_hover"
   for i, ext in ipairs(self._meta_ext or {}) do
@@ -119,6 +158,8 @@ function HoverPanel:apply_extmarks(_, lines)
     end
   end
 
+  local cfg = self:get_config()
+  local show_prefix = cfg.show_kind_prefix
   local tag_icons = require("lemon.parsers").get_all_tags()
   local content_start = self._meta_count
   local total_lines = vim.api.nvim_buf_line_count(self.buf)
@@ -137,11 +178,40 @@ function HoverPanel:apply_extmarks(_, lines)
         break
       end
     end
+    if not matched then
+      local keyword = l:match "^(import)%s" or l:match "^(export)%s"
+      if keyword then
+        local kw_icon, kw_hl = get_hover_kind_icon(keyword)
+        if kw_icon then
+          vim.api.nvim_buf_set_extmark(self.buf, ns, i, 0, {
+            sign_text = kw_icon,
+            sign_hl_group = kw_hl,
+          })
+          matched = true
+        end
+      end
+    end
     if not matched and first_content and l ~= "" and not l:match "^```" then
-      vim.api.nvim_buf_set_extmark(self.buf, ns, i, 0, {
-        sign_text = glyph.ui.content,
-        sign_hl_group = "LemonTitle",
-      })
+      local kind = parse_hover_kind(l)
+      local kind_icon, kind_hl = get_hover_kind_icon(kind)
+      if kind_icon then
+        vim.api.nvim_buf_set_extmark(self.buf, ns, i, 0, {
+          sign_text = kind_icon,
+          sign_hl_group = kind_hl,
+        })
+        if not show_prefix and kind then
+          local prefix_len = #("(" .. kind .. ") ")
+          vim.api.nvim_buf_set_extmark(self.buf, ns, i, 0, {
+            end_col = prefix_len,
+            conceal = "",
+          })
+        end
+      else
+        vim.api.nvim_buf_set_extmark(self.buf, ns, i, 0, {
+          sign_text = glyph.ui.content,
+          sign_hl_group = "LemonTitle",
+        })
+      end
       first_content = false
     end
   end

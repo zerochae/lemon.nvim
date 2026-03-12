@@ -6,7 +6,7 @@ A unified LSP UI layer for Neovim — hover, diagnostics, code actions, signatur
 
 ## Features
 
-- **Hover** — styled markdown panel with tag icons and server info
+- **Hover** — styled markdown panel with tag icons, kind-aware sign icons, and server info
 - **Definition** — go-to-definition with beacon animation and tagstack
 - **Diagnostic** — floating diagnostic panel with inline code actions and diff preview
 - **Code Action** — numbered action list with live diff preview
@@ -118,6 +118,47 @@ All groups link to built-in highlights by default. Override via the `highlights`
 | `LemonDiffAdd` | `DiffAdd` |
 | `LemonDiffDelete` | `DiffDelete` |
 | `LemonDiffHunk` | `Comment` |
+| `LemonHoverKind` | `Function` |
+| `LemonHoverKindAlias` | `Special` |
+| `LemonHoverKindFunction` | `Function` |
+| `LemonHoverKindProperty` | `@property` |
+| `LemonHoverKindVariable` | `@variable` |
+| `LemonHoverKindType` | `Type` |
+| `LemonHoverKindEnum` | `Constant` |
+| `LemonHoverKindModule` | `@module` |
+
+## Hover Kind Icons
+
+LSP hover responses often include a kind prefix like `(alias)`, `(method)`, `(function)`, etc. Lemon parses these and displays a matching icon in the sign column with kind-specific highlighting.
+
+By default the prefix text is concealed (icon only). Set `show_kind_prefix = true` to keep the text visible.
+
+```lua
+require("lemon").setup({
+  hover = {
+    show_kind_prefix = false, -- true to show "(alias)" text alongside the icon
+  },
+  glyph = {
+    hover_kind = {
+      alias = "A", -- override any kind icon
+    },
+  },
+})
+```
+
+Default kind mappings:
+
+| Kind | Icon | Highlight |
+| --- | --- | --- |
+| `alias` | 󰌹 | `LemonHoverKindAlias` |
+| `function` / `method` / `constructor` | 󰊕 | `LemonHoverKindFunction` |
+| `property` / `index` | 󰜢 | `LemonHoverKindProperty` |
+| `variable` / `parameter` / `const` / `let` | 󰀫 | `LemonHoverKindVariable` |
+| `class` / `interface` / `type alias` / `type` | 󰠱 | `LemonHoverKindType` |
+| `enum` / `enum member` | 󰕘 | `LemonHoverKindEnum` |
+| `namespace` / `module` | 󰅩 | `LemonHoverKindModule` |
+| `import` | 󰋺 | `LemonHoverKindModule` |
+| `export` | 󰈕 | `LemonHoverKindModule` |
 
 ## Custom Tag Parsers
 
