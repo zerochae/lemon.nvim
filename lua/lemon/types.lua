@@ -26,6 +26,7 @@
 ---@field enabled boolean
 ---@field visible_mode "hover"|"off_screen"|"always"
 ---@field treesitter boolean
+---@field style "fg"|"tinted"|"muted"
 ---@class Lemon.FooterConfig
 ---@field enabled boolean
 ---@field show_desc boolean

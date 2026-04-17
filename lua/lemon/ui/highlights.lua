@@ -59,6 +59,20 @@ local function create_scope_highlights()
   local normal_bg = color.get_hl_color("Normal", "bg") or "#1e1e2e"
   local cfg = require("lemon.config").get()
   local user_overrides = cfg.highlights or {}
+  local style = (cfg.scope and cfg.scope.biscuit and cfg.scope.biscuit.style) or "muted"
+
+  local comment_fg = color.get_hl_color("Comment", "fg") or "#6c7086"
+  local muted_bg = color.blend(comment_fg, normal_bg, 0.12)
+
+  local function biscuit_opts(fg)
+    if style == "fg" then
+      return { fg = fg }
+    elseif style == "tinted" then
+      return { fg = fg, bg = color.blend(fg, normal_bg, 0.08) }
+    else
+      return { fg = fg, bg = muted_bg }
+    end
+  end
 
   for kind = 1, 26 do
     local sources = kind_hl_sources[kind] or { "@type", "Type" }
@@ -71,19 +85,13 @@ local function create_scope_highlights()
 
     local bis_name = "LemonScopeBiscuit_" .. kind
     if not user_overrides[bis_name] then
-      vim.api.nvim_set_hl(0, bis_name, {
-        fg = kind_fg,
-        bg = color.blend(kind_fg, normal_bg, 0.08),
-      })
+      vim.api.nvim_set_hl(0, bis_name, biscuit_opts(kind_fg))
     end
   end
 
   local kw_fg = resolve_hl_fg({ "@keyword", "Keyword" }, "#cba6f7")
   if not user_overrides["LemonScopeBiscuitKeyword"] then
-    vim.api.nvim_set_hl(0, "LemonScopeBiscuitKeyword", {
-      fg = kw_fg,
-      bg = color.blend(kw_fg, normal_bg, 0.08),
-    })
+    vim.api.nvim_set_hl(0, "LemonScopeBiscuitKeyword", biscuit_opts(kw_fg))
   end
 
   if not user_overrides["LemonScopeText"] then
